@@ -1,0 +1,83 @@
+export const cleric = {
+  id: "cleric",
+  name: "Cleric",
+  nameTH: "นักบวชศักดิ์สิทธิ์",
+  icon: "✝️",
+  desc: "Divine champion — wields the power of the gods to heal and smite.",
+  hitDie: "d8",
+  primaryStat: "WIS",
+  subclasses: [
+    {
+      id: "life",
+      name: "Life Domain",
+      nameTH: "โดเมนชีวิต",
+      desc: "Powerful healing, preserve life.",
+    },
+    {
+      id: "war",
+      name: "War Domain",
+      nameTH: "โดเมนสงคราม",
+      desc: "Martial prowess, extra attacks.",
+    },
+    {
+      id: "light",
+      name: "Light Domain",
+      nameTH: "โดเมนแสง",
+      desc: "Fire and radiance magic.",
+    },
+    {
+      id: "death",
+      name: "Death Domain",
+      nameTH: "โดเมนมรณะ",
+      desc: "Necrotic power and undead control.",
+    },
+    {
+      id: "trickery",
+      name: "Trickery Domain",
+      nameTH: "โดเมนหลอกลวง",
+      desc: "Illusions, deception, and shadow.",
+    },
+    {
+      id: "knowledge",
+      name: "Knowledge Domain",
+      nameTH: "โดเมนความรู้",
+      desc: "Absorb skills and knowledge from others.",
+    },
+    {
+      id: "tempest",
+      name: "Tempest Domain",
+      nameTH: "โดเมนพายุ",
+      desc: "Thunder, lightning, and ocean fury.",
+    },
+    {
+      id: "grave",
+      name: "Grave Domain",
+      nameTH: "โดเมนสุสาน",
+      desc: "Balance between life and death.",
+    },
+    {
+      id: "forge",
+      name: "Forge Domain",
+      nameTH: "โดเมนเตาหลอม",
+      desc: "God of smithing — enchant weapons and armor.",
+    },
+    {
+      id: "twilight",
+      name: "Twilight Domain",
+      nameTH: "โดเมนสนธยา",
+      desc: "Protect allies in darkness and night.",
+    },
+    {
+      id: "peace",
+      name: "Peace Domain",
+      nameTH: "โดเมนสันติภาพ",
+      desc: "Bond allies together and shield them.",
+    },
+    {
+      id: "order",
+      name: "Order Domain",
+      nameTH: "โดเมนระเบียบ",
+      desc: "Enforce law and command others.",
+    },
+  ],
+};

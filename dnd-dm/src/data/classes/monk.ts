@@ -1,0 +1,71 @@
+export const monk = {
+  id: "monk",
+  name: "Monk",
+  nameTH: "นักพรต",
+  icon: "👊",
+  desc: "Channels Ki energy through body and mind — a living weapon.",
+  hitDie: "d8",
+  primaryStat: "DEX & WIS",
+  subclasses: [
+    {
+      id: "openhand",
+      name: "Way of the Open Hand",
+      nameTH: "สายมือเปิด",
+      desc: "Supreme unarmed techniques — push, topple, stun.",
+    },
+    {
+      id: "shadow",
+      name: "Way of Shadow",
+      nameTH: "สายเงามืด",
+      desc: "Shadow arts, invisibility, and teleportation.",
+    },
+    {
+      id: "fourelement",
+      name: "Way of the Four Elements",
+      nameTH: "สายสี่ธาตุ",
+      desc: "Bend fire, water, earth, and air with Ki.",
+    },
+    {
+      id: "drunken",
+      name: "Drunken Master",
+      nameTH: "สายหมัดเมา",
+      desc: "Unpredictable drunken fighting style.",
+    },
+    {
+      id: "kensei",
+      name: "Way of the Kensei",
+      nameTH: "สายเคนเซย์",
+      desc: "Weapon master — chosen weapons become monk weapons.",
+    },
+    {
+      id: "sunsoul",
+      name: "Way of the Sun Soul",
+      nameTH: "สายวิญญาณอาทิตย์",
+      desc: "Fire radiant blasts from your fists.",
+    },
+    {
+      id: "longdeath",
+      name: "Way of the Long Death",
+      nameTH: "สายมรณะยาวนาน",
+      desc: "Drain life energy from death around you.",
+    },
+    {
+      id: "mercy",
+      name: "Way of Mercy",
+      nameTH: "สายเมตตา",
+      desc: "Heal and harm with the same Ki touch.",
+    },
+    {
+      id: "astralself",
+      name: "Way of the Astral Self",
+      nameTH: "สายตัวตนดวงดาว",
+      desc: "Manifest a spectral astral form to fight.",
+    },
+    {
+      id: "dragon_monk",
+      name: "Ascendant Dragon",
+      nameTH: "สายมังกรเสด็จขึ้น",
+      desc: "Inherit draconic power — breathe and fly.",
+    },
+  ],
+};

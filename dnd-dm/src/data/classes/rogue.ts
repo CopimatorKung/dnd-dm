@@ -1,0 +1,65 @@
+export const rogue = {
+  id: "rogue",
+  name: "Rogue",
+  nameTH: "โจรสังหาร",
+  icon: "🗡️",
+  desc: "Cunning and deadly — strikes from shadows with lethal precision.",
+  hitDie: "d8",
+  primaryStat: "DEX",
+  subclasses: [
+    {
+      id: "thief",
+      name: "Thief",
+      nameTH: "ขโมย",
+      desc: "Expert at lockpicking, stealing, and fast hands.",
+    },
+    {
+      id: "assassin",
+      name: "Assassin",
+      nameTH: "นักสังหาร",
+      desc: "Deadly ambusher and master of disguise.",
+    },
+    {
+      id: "arcane",
+      name: "Arcane Trickster",
+      nameTH: "นักหลอกลวงอาร์เคน",
+      desc: "Illusion and enchantment spells.",
+    },
+    {
+      id: "inquisitive",
+      name: "Inquisitive",
+      nameTH: "นักสืบ",
+      desc: "Find lies, exploit weaknesses, interrogate.",
+    },
+    {
+      id: "mastermind",
+      name: "Mastermind",
+      nameTH: "อัจฉริยะ",
+      desc: "Strategic genius — use others as shields.",
+    },
+    {
+      id: "phantom",
+      name: "Phantom",
+      nameTH: "เงาวิญญาณ",
+      desc: "Drain tokens from the souls of the dead.",
+    },
+    {
+      id: "scout",
+      name: "Scout",
+      nameTH: "นักสำรวจ",
+      desc: "Expert skirmisher in outdoor terrain.",
+    },
+    {
+      id: "soulknife",
+      name: "Soulknife",
+      nameTH: "มีดวิญญาณ",
+      desc: "Manifest psychic blades from your mind.",
+    },
+    {
+      id: "swashbuckler",
+      name: "Swashbuckler",
+      nameTH: "นักดาบหรูหรา",
+      desc: "Flashy duelist — Sneak Attack without allies.",
+    },
+  ],
+};

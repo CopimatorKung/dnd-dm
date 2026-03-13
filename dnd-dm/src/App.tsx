@@ -1,4 +1,12 @@
 import { useState, useRef, useEffect } from "react";
+import {
+  CLASSES,
+  WARLOCK_SUBCLASS_SPELLS,
+  WARLOCK_SUBCLASS_FEATURES,
+  ELDRITCH_INVOCATIONS,
+  WARLOCK_INVOCATION_COUNT,
+  WARLOCK_SLOT_LEVEL,
+} from "./data/classes";
 
 // ============================================================
 // DnD 5e DATA
@@ -183,841 +191,6 @@ const RACES = [
         name: "Standard",
         nameTH: "มาตรฐาน",
         desc: "Menacing skill, Savage Attacks on crits.",
-      },
-    ],
-  },
-];
-
-const CLASSES = [
-  {
-    id: "artificer",
-    name: "Artificer",
-    nameTH: "นักประดิษฐ์เวทย์",
-    icon: "⚙️",
-    desc: "Crafts magic-infused objects, golems, and wondrous inventions.",
-    hitDie: "d8",
-    primaryStat: "INT",
-    subclasses: [
-      {
-        id: "alchemist",
-        name: "Alchemist",
-        nameTH: "นักเล่นแร่แปรธาตุ",
-        desc: "Brews potions and throws alchemical vials.",
-      },
-      {
-        id: "armorer",
-        name: "Armorer",
-        nameTH: "ช่างเกราะ",
-        desc: "Wears a powered arcane armor suit.",
-      },
-      {
-        id: "artillerist",
-        name: "Artillerist",
-        nameTH: "นักปืนใหญ่เวทย์",
-        desc: "Conjures arcane cannons and explosives.",
-      },
-      {
-        id: "battlesmith",
-        name: "Battle Smith",
-        nameTH: "ช่างรบ",
-        desc: "Fights alongside a steel defender construct.",
-      },
-    ],
-  },
-  {
-    id: "barbarian",
-    name: "Barbarian",
-    nameTH: "นักรบป่าเถื่อน",
-    icon: "🪓",
-    desc: "Primal warrior fueled by rage — unstoppable force of nature.",
-    hitDie: "d12",
-    primaryStat: "STR",
-    subclasses: [
-      {
-        id: "berserker",
-        name: "Berserker",
-        nameTH: "คลั่งดาบ",
-        desc: "Frenzied bonus attacks in a rage.",
-      },
-      {
-        id: "totem",
-        name: "Totem Warrior",
-        nameTH: "นักรบโทเทม",
-        desc: "Channel the spirit of bear, wolf, or eagle.",
-      },
-      {
-        id: "beast",
-        name: "Path of the Beast",
-        nameTH: "สายสัตว์",
-        desc: "Grow claws, tail, or bite in combat.",
-      },
-      {
-        id: "storm",
-        name: "Storm Herald",
-        nameTH: "ผู้ประกาศพายุ",
-        desc: "Aura of storm, arctic, or desert energy.",
-      },
-      {
-        id: "zealot",
-        name: "Zealot",
-        nameTH: "ผู้คลั่งศรัทธา",
-        desc: "Divine power makes you nearly unkillable.",
-      },
-      {
-        id: "wildmagic_barb",
-        name: "Wild Magic",
-        nameTH: "เวทย์ป่า",
-        desc: "Rage unleashes random magical surges.",
-      },
-    ],
-  },
-  {
-    id: "bard",
-    name: "Bard",
-    nameTH: "นักดนตรีเวทย์",
-    icon: "🎵",
-    desc: "Magical performer — inspires allies and confounds enemies with song.",
-    hitDie: "d8",
-    primaryStat: "CHA",
-    subclasses: [
-      {
-        id: "lore",
-        name: "College of Lore",
-        nameTH: "วิทยาลัยปราชญ์",
-        desc: "Extra skills and Cutting Words against foes.",
-      },
-      {
-        id: "valor",
-        name: "College of Valor",
-        nameTH: "วิทยาลัยวีรกรรม",
-        desc: "Combat inspiration, can wear medium armor.",
-      },
-      {
-        id: "glamour",
-        name: "College of Glamour",
-        nameTH: "วิทยาลัยเสน่ห์",
-        desc: "Fey magic of enchantment and allure.",
-      },
-      {
-        id: "swords",
-        name: "College of Swords",
-        nameTH: "วิทยาลัยดาบ",
-        desc: "Blade flourishes that deal bonus damage.",
-      },
-      {
-        id: "whispers",
-        name: "College of Whispers",
-        nameTH: "วิทยาลัยกระซิบ",
-        desc: "Spy, psychic terror, and stolen identities.",
-      },
-      {
-        id: "creation",
-        name: "College of Creation",
-        nameTH: "วิทยาลัยสร้างสรรค์",
-        desc: "Conjure objects and animate them.",
-      },
-      {
-        id: "eloquence",
-        name: "College of Eloquence",
-        nameTH: "วิทยาลัยวาทะ",
-        desc: "Unsurpassed rhetoric — Persuasion never fails.",
-      },
-      {
-        id: "spirits",
-        name: "College of Spirits",
-        nameTH: "วิทยาลัยวิญญาณ",
-        desc: "Channel spirits for random powerful effects.",
-      },
-    ],
-  },
-  {
-    id: "bloodhunter",
-    name: "Blood Hunter",
-    nameTH: "นักล่าเลือด",
-    icon: "🩸",
-    desc: "Sacrifices own vitality for forbidden blood magic to hunt monsters.",
-    hitDie: "d10",
-    primaryStat: "STR or DEX",
-    subclasses: [
-      {
-        id: "ghostslayer",
-        name: "Order of the Ghostslayer",
-        nameTH: "อัศวินปราบวิญญาณ",
-        desc: "Specialized in hunting undead and ghosts.",
-      },
-      {
-        id: "lycan",
-        name: "Order of the Lycan",
-        nameTH: "อัศวินมนุษย์หมาป่า",
-        desc: "Control a werewolf curse for power.",
-      },
-      {
-        id: "mutant",
-        name: "Order of the Mutant",
-        nameTH: "อัศวินกลายพันธุ์",
-        desc: "Drink mutagens to transform and gain power.",
-      },
-      {
-        id: "profanesoul",
-        name: "Order of the Profane Soul",
-        nameTH: "อัศวินวิญญาณต้องห้าม",
-        desc: "Wield warlock-like power through blood rites.",
-      },
-    ],
-  },
-  {
-    id: "cleric",
-    name: "Cleric",
-    nameTH: "นักบวชศักดิ์สิทธิ์",
-    icon: "✝️",
-    desc: "Divine champion — wields the power of the gods to heal and smite.",
-    hitDie: "d8",
-    primaryStat: "WIS",
-    subclasses: [
-      {
-        id: "life",
-        name: "Life Domain",
-        nameTH: "โดเมนชีวิต",
-        desc: "Powerful healing, preserve life.",
-      },
-      {
-        id: "war",
-        name: "War Domain",
-        nameTH: "โดเมนสงคราม",
-        desc: "Martial prowess, extra attacks.",
-      },
-      {
-        id: "light",
-        name: "Light Domain",
-        nameTH: "โดเมนแสง",
-        desc: "Fire and radiance magic.",
-      },
-      {
-        id: "death",
-        name: "Death Domain",
-        nameTH: "โดเมนมรณะ",
-        desc: "Necrotic power and undead control.",
-      },
-      {
-        id: "trickery",
-        name: "Trickery Domain",
-        nameTH: "โดเมนหลอกลวง",
-        desc: "Illusions, deception, and shadow.",
-      },
-      {
-        id: "knowledge",
-        name: "Knowledge Domain",
-        nameTH: "โดเมนความรู้",
-        desc: "Absorb skills and knowledge from others.",
-      },
-      {
-        id: "tempest",
-        name: "Tempest Domain",
-        nameTH: "โดเมนพายุ",
-        desc: "Thunder, lightning, and ocean fury.",
-      },
-      {
-        id: "grave",
-        name: "Grave Domain",
-        nameTH: "โดเมนสุสาน",
-        desc: "Balance between life and death.",
-      },
-      {
-        id: "forge",
-        name: "Forge Domain",
-        nameTH: "โดเมนเตาหลอม",
-        desc: "God of smithing — enchant weapons and armor.",
-      },
-      {
-        id: "twilight",
-        name: "Twilight Domain",
-        nameTH: "โดเมนสนธยา",
-        desc: "Protect allies in darkness and night.",
-      },
-      {
-        id: "peace",
-        name: "Peace Domain",
-        nameTH: "โดเมนสันติภาพ",
-        desc: "Bond allies together and shield them.",
-      },
-      {
-        id: "order",
-        name: "Order Domain",
-        nameTH: "โดเมนระเบียบ",
-        desc: "Enforce law and command others.",
-      },
-    ],
-  },
-  {
-    id: "druid",
-    name: "Druid",
-    nameTH: "ผู้พิทักษ์ธรรมชาติ",
-    icon: "🌙",
-    desc: "Servant of nature — shapeshifts and wields elemental magic.",
-    hitDie: "d8",
-    primaryStat: "WIS",
-    subclasses: [
-      {
-        id: "moon",
-        name: "Circle of the Moon",
-        nameTH: "วงจรจันทร์",
-        desc: "Wild Shape into powerful beasts.",
-      },
-      {
-        id: "land",
-        name: "Circle of the Land",
-        nameTH: "วงจรแผ่นดิน",
-        desc: "Extra spells from natural environments.",
-      },
-      {
-        id: "spores",
-        name: "Circle of Spores",
-        nameTH: "วงจรสปอร์",
-        desc: "Fungal spores and plant zombies.",
-      },
-      {
-        id: "stars",
-        name: "Circle of Stars",
-        nameTH: "วงจรดวงดาว",
-        desc: "Draw power from constellations.",
-      },
-      {
-        id: "wildfire",
-        name: "Circle of Wildfire",
-        nameTH: "วงจรไฟป่า",
-        desc: "Wildfire spirit and flame magic.",
-      },
-      {
-        id: "shepherd",
-        name: "Circle of the Shepherd",
-        nameTH: "วงจรผู้เลี้ยงสัตว์",
-        desc: "Summon animal spirit guardians.",
-      },
-      {
-        id: "dreams",
-        name: "Circle of Dreams",
-        nameTH: "วงจรความฝัน",
-        desc: "Connect to the Feywild and dream realm.",
-      },
-    ],
-  },
-  {
-    id: "fighter",
-    name: "Fighter",
-    nameTH: "นักรบ",
-    icon: "⚔️",
-    desc: "Unparalleled mastery of weapons and armor — a walking arsenal.",
-    hitDie: "d10",
-    primaryStat: "STR or DEX",
-    subclasses: [
-      {
-        id: "champion",
-        name: "Champion",
-        nameTH: "แชมเปี้ยน",
-        desc: "Enhanced crits, superior athlete.",
-      },
-      {
-        id: "battlemaster",
-        name: "Battle Master",
-        nameTH: "จอมยุทธ์",
-        desc: "Tactical maneuvers with Superiority Dice.",
-      },
-      {
-        id: "eldritch",
-        name: "Eldritch Knight",
-        nameTH: "อัศวินเวทย์",
-        desc: "Blend martial prowess with arcane spells.",
-      },
-      {
-        id: "echo",
-        name: "Echo Knight",
-        nameTH: "อัศวินเงา",
-        desc: "Create a duplicate from a parallel dimension.",
-      },
-      {
-        id: "samurai",
-        name: "Samurai",
-        nameTH: "ซามูไร",
-        desc: "Fighting spirit keeps you up near death.",
-      },
-      {
-        id: "cavalier",
-        name: "Cavalier",
-        nameTH: "อัศวินม้า",
-        desc: "Mounted combat and ally protection.",
-      },
-      {
-        id: "runeknght",
-        name: "Rune Knight",
-        nameTH: "อัศวินรูน",
-        desc: "Carve giant runes to empower yourself.",
-      },
-      {
-        id: "psiknight",
-        name: "Psi Warrior",
-        nameTH: "นักรบจิต",
-        desc: "Harness psionic energy in battle.",
-      },
-    ],
-  },
-  {
-    id: "monk",
-    name: "Monk",
-    nameTH: "นักพรต",
-    icon: "👊",
-    desc: "Channels Ki energy through body and mind — a living weapon.",
-    hitDie: "d8",
-    primaryStat: "DEX & WIS",
-    subclasses: [
-      {
-        id: "openhand",
-        name: "Way of the Open Hand",
-        nameTH: "สายมือเปิด",
-        desc: "Supreme unarmed techniques — push, topple, stun.",
-      },
-      {
-        id: "shadow",
-        name: "Way of Shadow",
-        nameTH: "สายเงามืด",
-        desc: "Shadow arts, invisibility, and teleportation.",
-      },
-      {
-        id: "fourelement",
-        name: "Way of the Four Elements",
-        nameTH: "สายสี่ธาตุ",
-        desc: "Bend fire, water, earth, and air with Ki.",
-      },
-      {
-        id: "drunken",
-        name: "Drunken Master",
-        nameTH: "สายหมัดเมา",
-        desc: "Unpredictable drunken fighting style.",
-      },
-      {
-        id: "kensei",
-        name: "Way of the Kensei",
-        nameTH: "สายเคนเซย์",
-        desc: "Weapon master — chosen weapons become monk weapons.",
-      },
-      {
-        id: "sunsoul",
-        name: "Way of the Sun Soul",
-        nameTH: "สายวิญญาณอาทิตย์",
-        desc: "Fire radiant blasts from your fists.",
-      },
-      {
-        id: "longdeath",
-        name: "Way of the Long Death",
-        nameTH: "สายมรณะยาวนาน",
-        desc: "Drain life energy from death around you.",
-      },
-      {
-        id: "mercy",
-        name: "Way of Mercy",
-        nameTH: "สายเมตตา",
-        desc: "Heal and harm with the same Ki touch.",
-      },
-      {
-        id: "astralself",
-        name: "Way of the Astral Self",
-        nameTH: "สายตัวตนดวงดาว",
-        desc: "Manifest a spectral astral form to fight.",
-      },
-      {
-        id: "dragon_monk",
-        name: "Ascendant Dragon",
-        nameTH: "สายมังกรเสด็จขึ้น",
-        desc: "Inherit draconic power — breathe and fly.",
-      },
-    ],
-  },
-  {
-    id: "paladin",
-    name: "Paladin",
-    nameTH: "อัศวินศักดิ์สิทธิ์",
-    icon: "🛡️",
-    desc: "Holy warrior bound by sacred oath — smites evil with divine power.",
-    hitDie: "d10",
-    primaryStat: "STR & CHA",
-    subclasses: [
-      {
-        id: "devotion",
-        name: "Oath of Devotion",
-        nameTH: "คำสาบานจงรักภักดี",
-        desc: "Classic holy warrior protecting the innocent.",
-      },
-      {
-        id: "ancients",
-        name: "Oath of the Ancients",
-        nameTH: "คำสาบานโบราณ",
-        desc: "Nature-sworn, fey-touched protector.",
-      },
-      {
-        id: "vengeance",
-        name: "Oath of Vengeance",
-        nameTH: "คำสาบานแก้แค้น",
-        desc: "Ruthless hunter of the wicked.",
-      },
-      {
-        id: "conquest",
-        name: "Oath of Conquest",
-        nameTH: "คำสาบานพิชิต",
-        desc: "Crush enemies with fear and iron will.",
-      },
-      {
-        id: "redemption",
-        name: "Oath of Redemption",
-        nameTH: "คำสาบานไถ่บาป",
-        desc: "Seek peace and redeem the fallen.",
-      },
-      {
-        id: "glory",
-        name: "Oath of Glory",
-        nameTH: "คำสาบานรุ่งโรจน์",
-        desc: "Inspire others, become a living legend.",
-      },
-      {
-        id: "watchers",
-        name: "Oath of the Watchers",
-        nameTH: "คำสาบานผู้เฝ้าดู",
-        desc: "Guard the world against extraplanar threats.",
-      },
-      {
-        id: "oathbreaker",
-        name: "Oathbreaker",
-        nameTH: "ผู้ทำลายคำสาบาน",
-        desc: "Broke the oath — now wields dark power.",
-      },
-    ],
-  },
-  {
-    id: "ranger",
-    name: "Ranger",
-    nameTH: "นักล่าป่า",
-    icon: "🏹",
-    desc: "Skilled hunter and tracker — deadly in the wilds and at range.",
-    hitDie: "d10",
-    primaryStat: "DEX & WIS",
-    subclasses: [
-      {
-        id: "hunter",
-        name: "Hunter Conclave",
-        nameTH: "กลุ่มนักล่า",
-        desc: "Specializes in fighting hordes or single foes.",
-      },
-      {
-        id: "beastmaster",
-        name: "Beast Master Conclave",
-        nameTH: "กลุ่มเจ้าสัตว์",
-        desc: "Bond with an animal companion.",
-      },
-      {
-        id: "gloom",
-        name: "Gloom Stalker Conclave",
-        nameTH: "กลุ่มนักล่าเงา",
-        desc: "Master of darkness and ambush strikes.",
-      },
-      {
-        id: "horizon",
-        name: "Horizon Walker Conclave",
-        nameTH: "กลุ่มนักเดินทางขอบฟ้า",
-        desc: "Planar guardian, teleports in combat.",
-      },
-      {
-        id: "monsterslayer",
-        name: "Monster Slayer Conclave",
-        nameTH: "กลุ่มนักล่าอสูร",
-        desc: "Specialized in hunting specific monster types.",
-      },
-      {
-        id: "feywanderer",
-        name: "Fey Wanderer",
-        nameTH: "นักเดินทางเฟย์",
-        desc: "Fey magic grants charm and psychic power.",
-      },
-      {
-        id: "swarmkeeper",
-        name: "Swarmkeeper",
-        nameTH: "ผู้ควบคุมฝูง",
-        desc: "Command a swarm of insects or creatures.",
-      },
-      {
-        id: "drakewarden",
-        name: "Drakewarden",
-        nameTH: "ผู้เลี้ยงมังกรน้อย",
-        desc: "Bond with and ride a small drake companion.",
-      },
-    ],
-  },
-  {
-    id: "rogue",
-    name: "Rogue",
-    nameTH: "โจรสังหาร",
-    icon: "🗡️",
-    desc: "Cunning and deadly — strikes from shadows with lethal precision.",
-    hitDie: "d8",
-    primaryStat: "DEX",
-    subclasses: [
-      {
-        id: "thief",
-        name: "Thief",
-        nameTH: "ขโมย",
-        desc: "Expert at lockpicking, stealing, and fast hands.",
-      },
-      {
-        id: "assassin",
-        name: "Assassin",
-        nameTH: "นักสังหาร",
-        desc: "Deadly ambusher and master of disguise.",
-      },
-      {
-        id: "arcane",
-        name: "Arcane Trickster",
-        nameTH: "นักหลอกลวงอาร์เคน",
-        desc: "Illusion and enchantment spells.",
-      },
-      {
-        id: "inquisitive",
-        name: "Inquisitive",
-        nameTH: "นักสืบ",
-        desc: "Find lies, exploit weaknesses, interrogate.",
-      },
-      {
-        id: "mastermind",
-        name: "Mastermind",
-        nameTH: "อัจฉริยะ",
-        desc: "Strategic genius — use others as shields.",
-      },
-      {
-        id: "phantom",
-        name: "Phantom",
-        nameTH: "เงาวิญญาณ",
-        desc: "Drain tokens from the souls of the dead.",
-      },
-      {
-        id: "scout",
-        name: "Scout",
-        nameTH: "นักสำรวจ",
-        desc: "Expert skirmisher in outdoor terrain.",
-      },
-      {
-        id: "soulknife",
-        name: "Soulknife",
-        nameTH: "มีดวิญญาณ",
-        desc: "Manifest psychic blades from your mind.",
-      },
-      {
-        id: "swashbuckler",
-        name: "Swashbuckler",
-        nameTH: "นักดาบหรูหรา",
-        desc: "Flashy duelist — Sneak Attack without allies.",
-      },
-    ],
-  },
-  {
-    id: "sorcerer",
-    name: "Sorcerer",
-    nameTH: "จอมเวทย์สายเลือด",
-    icon: "✨",
-    desc: "Born with innate magical power — shapes spells with raw talent.",
-    hitDie: "d6",
-    primaryStat: "CHA",
-    subclasses: [
-      {
-        id: "draconic",
-        name: "Draconic Bloodline",
-        nameTH: "สายมังกร",
-        desc: "Draconic power, bonus HP, elemental resistance.",
-      },
-      {
-        id: "wild",
-        name: "Wild Magic",
-        nameTH: "เวทย์ป่า",
-        desc: "Unpredictable surges of raw magic.",
-      },
-      {
-        id: "aberrant",
-        name: "Aberrant Mind",
-        nameTH: "จิตวิปริต",
-        desc: "Far Realm bloodline — telepathy and psionics.",
-      },
-      {
-        id: "clockwork",
-        name: "Clockwork Soul",
-        nameTH: "วิญญาณนาฬิกา",
-        desc: "Power of Mechanus — order and balance.",
-      },
-      {
-        id: "shadow_sorc",
-        name: "Shadow Magic",
-        nameTH: "เวทย์เงา",
-        desc: "Born in Shadowfell — control darkness.",
-      },
-      {
-        id: "storm_sorc",
-        name: "Storm Sorcery",
-        nameTH: "เวทย์พายุ",
-        desc: "Thunder, lightning, and sea fury.",
-      },
-      {
-        id: "divine",
-        name: "Divine Soul",
-        nameTH: "วิญญาณศักดิ์สิทธิ์",
-        desc: "Divine bloodline — access cleric spells too.",
-      },
-      {
-        id: "lunar",
-        name: "Lunar Sorcery",
-        nameTH: "เวทย์จันทรา",
-        desc: "Moon phases grant shifting powers.",
-      },
-    ],
-  },
-  {
-    id: "warlock",
-    name: "Warlock",
-    nameTH: "ผู้ทำสัญญามืด",
-    icon: "🌑",
-    desc: "Made a pact with a mysterious entity in exchange for eldritch power.",
-    hitDie: "d8",
-    primaryStat: "CHA",
-    subclasses: [
-      {
-        id: "fiend",
-        name: "The Fiend",
-        nameTH: "ปีศาจ",
-        desc: "Pact with a devil — gain HP on kills.",
-      },
-      {
-        id: "greatoldone",
-        name: "Great Old One",
-        nameTH: "สิ่งโบราณ",
-        desc: "Pact with an unknowable entity — telepathy.",
-      },
-      {
-        id: "archfey",
-        name: "Archfey",
-        nameTH: "ราชาเฟย์",
-        desc: "Pact with a fey lord — charm and beguile.",
-      },
-      {
-        id: "celestial",
-        name: "Celestial",
-        nameTH: "สวรรค์",
-        desc: "Pact with a celestial — heal and radiance.",
-      },
-      {
-        id: "hexblade",
-        name: "Hexblade",
-        nameTH: "ดาบสาป",
-        desc: "Pact with a sentient weapon — use CHA to attack.",
-      },
-      {
-        id: "undead",
-        name: "Undead",
-        nameTH: "ผีดิบ",
-        desc: "Pact with an undead lord — become deathly.",
-      },
-      {
-        id: "fathomless",
-        name: "Fathomless",
-        nameTH: "ห้วงลึก",
-        desc: "Pact with a deep-sea entity — tentacles.",
-      },
-      {
-        id: "genie",
-        name: "The Genie",
-        nameTH: "จินนี่",
-        desc: "Pact with a genie of any elemental type.",
-      },
-    ],
-  },
-  {
-    id: "wizard",
-    name: "Wizard",
-    nameTH: "จอมเวทย์ตำรา",
-    icon: "🔮",
-    desc: "Supreme magic-user — studies the weave to cast devastating spells.",
-    hitDie: "d6",
-    primaryStat: "INT",
-    subclasses: [
-      {
-        id: "evocation",
-        name: "Evocation",
-        nameTH: "สายระเบิด",
-        desc: "Devastating blast spells — Fireball spares allies.",
-      },
-      {
-        id: "abjuration",
-        name: "Abjuration",
-        nameTH: "สายป้องกัน",
-        desc: "Arcane wards and counterspells.",
-      },
-      {
-        id: "conjuration",
-        name: "Conjuration",
-        nameTH: "สายเรียก",
-        desc: "Summon creatures and teleport.",
-      },
-      {
-        id: "divination",
-        name: "Divination",
-        nameTH: "สายทำนาย",
-        desc: "Foresee the future — reroll dice in advance.",
-      },
-      {
-        id: "enchantment",
-        name: "Enchantment",
-        nameTH: "สายสะกดจิต",
-        desc: "Charm and dominate minds.",
-      },
-      {
-        id: "illusion",
-        name: "Illusion",
-        nameTH: "สายลวงตา",
-        desc: "Create illusions nearly indistinguishable from reality.",
-      },
-      {
-        id: "necromancy",
-        name: "Necromancy",
-        nameTH: "สายปลุกผี",
-        desc: "Animate undead and harness death energy.",
-      },
-      {
-        id: "transmutation",
-        name: "Transmutation",
-        nameTH: "สายแปลงร่าง",
-        desc: "Transform matter and living creatures.",
-      },
-      {
-        id: "bladesinging",
-        name: "Bladesinging",
-        nameTH: "สายดาบร้องเพลง",
-        desc: "Elven warrior-mage combining sword and spell.",
-      },
-      {
-        id: "chronurgy",
-        name: "Chronurgy",
-        nameTH: "สายเวลา",
-        desc: "Manipulate time — reroll dice, slow enemies.",
-      },
-      {
-        id: "graviturgy",
-        name: "Graviturgy",
-        nameTH: "สายแรงโน้มถ่วง",
-        desc: "Control gravity to push, pull, and crush.",
-      },
-      {
-        id: "warmagic",
-        name: "War Magic",
-        nameTH: "สายเวทย์สงคราม",
-        desc: "Durable battlefield caster — speed and defense.",
-      },
-      {
-        id: "scribes",
-        name: "Order of Scribes",
-        nameTH: "สายตำรามีชีวิต",
-        desc: "Living spellbook — swap spell damage types.",
       },
     ],
   },
@@ -2689,444 +1862,6 @@ const SPELL_CLASS_INFO: Record<string, any> = {
   },
 };
 
-const WARLOCK_SLOT_LEVEL = [
-  1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
-];
-
-// ---- WARLOCK SUBCLASS EXPANDED SPELLS ----
-const WARLOCK_SUBCLASS_SPELLS: Record<string, Record<number, string[]>> = {
-  archfey: {
-    1: ["Faerie Fire", "Sleep"],
-    2: ["Calm Emotions", "Phantasmal Force"],
-    3: ["Blink", "Plant Growth"],
-    4: ["Dominate Beast", "Greater Invisibility"],
-    5: ["Dominate Person", "Seeming"],
-  },
-  celestial: {
-    1: ["Cure Wounds", "Guiding Bolt"],
-    2: ["Flaming Sphere", "Lesser Restoration"],
-    3: ["Daylight", "Revivify"],
-    4: ["Guardian of Faith", "Wall of Fire"],
-    5: ["Flame Strike", "Greater Restoration"],
-  },
-  fathomless: {
-    1: ["Create or Destroy Water", "Thunderwave"],
-    2: ["Gust of Wind", "Silence"],
-    3: ["Lightning Bolt", "Sleet Storm"],
-    4: ["Control Water", "Summon Elemental"],
-    5: ["Bigby's Hand", "Cone of Cold"],
-  },
-  fiend: {
-    1: ["Burning Hands", "Command"],
-    2: ["Blindness/Deafness", "Scorching Ray"],
-    3: ["Fireball", "Stinking Cloud"],
-    4: ["Fire Shield", "Wall of Fire"],
-    5: ["Flame Strike", "Hallow"],
-  },
-  genie: {
-    1: ["Detect Evil and Good", "Sanctuary"],
-    2: ["Phantasmal Force", "Spike Growth"],
-    3: ["Create Food and Water", "Wind Wall"],
-    4: ["Phantasmal Killer", "Stone Shape"],
-    5: ["Creation", "Wall of Stone"],
-  },
-  greatoldone: {
-    1: ["Dissonant Whispers", "Tasha's Hideous Laughter"],
-    2: ["Detect Thoughts", "Phantasmal Force"],
-    3: ["Clairvoyance", "Sending"],
-    4: ["Dominate Beast", "Evard's Black Tentacles"],
-    5: ["Dominate Person", "Telekinesis"],
-  },
-  hexblade: {
-    1: ["Shield", "Wrathful Smite"],
-    2: ["Blur", "Branding Smite"],
-    3: ["Blink", "Elemental Weapon"],
-    4: ["Phantasmal Killer", "Staggering Smite"],
-    5: ["Banishing Smite", "Cone of Cold"],
-  },
-  undead: {
-    1: ["Bane", "False Life"],
-    2: ["Blindness/Deafness", "Phantasmal Force"],
-    3: ["Phantom Steed", "Speak with Dead"],
-    4: ["Death Ward", "Greater Invisibility"],
-    5: ["Antilife Shell", "Cloudkill"],
-  },
-  undying: {
-    1: ["False Life", "Ray of Sickness"],
-    2: ["Blindness/Deafness", "Silence"],
-    3: ["Feign Death", "Speak with Dead"],
-    4: ["Aura of Life", "Death Ward"],
-    5: ["Contagion", "Legend Lore"],
-  },
-};
-
-// ---- WARLOCK SUBCLASS FEATURES (tracked uses) ----
-function profBonus(lvl: number) {
-  return Math.floor((lvl - 1) / 4) + 2;
-}
-
-const WARLOCK_SUBCLASS_FEATURES: Record<string, (lvl: number) => any[]> = {
-  archfey: (lvl) => [
-    { name: "Fey Presence", nameTH: "ออร่าเฟย์", max: 1, restOn: "short" },
-    ...(lvl >= 6
-      ? [
-          {
-            name: "Misty Escape",
-            nameTH: "หายตัวเป็นหมอก",
-            max: 1,
-            restOn: "short",
-          },
-        ]
-      : []),
-    ...(lvl >= 14
-      ? [
-          {
-            name: "Dark Delirium",
-            nameTH: "มายาความมืด",
-            max: 1,
-            restOn: "short",
-          },
-        ]
-      : []),
-  ],
-  celestial: (lvl) => [
-    {
-      name: "Healing Light",
-      nameTH: "แสงรักษา",
-      max: 1 + lvl,
-      restOn: "long",
-      isPool: true,
-    },
-  ],
-  fathomless: (lvl) => [
-    {
-      name: "Tentacle of the Deep",
-      nameTH: "หนวดแห่งความลึก",
-      max: profBonus(lvl),
-      restOn: "long",
-    },
-  ],
-  fiend: (lvl) => [
-    ...(lvl >= 6
-      ? [
-          {
-            name: "Dark One's Own Luck",
-            nameTH: "โชคปีศาจ",
-            max: 1,
-            restOn: "short",
-          },
-        ]
-      : []),
-  ],
-  genie: (lvl) => [
-    { name: "Bottled Respite", nameTH: "หลบในขวด", max: 1, restOn: "long" },
-    ...(lvl >= 6
-      ? [
-          {
-            name: "Elemental Gift (Fly)",
-            nameTH: "ของขวัญธาตุ(บิน)",
-            max: profBonus(lvl),
-            restOn: "long",
-          },
-        ]
-      : []),
-  ],
-  greatoldone: (lvl) => [
-    ...(lvl >= 6
-      ? [
-          {
-            name: "Entropic Ward",
-            nameTH: "เกราะเอนโทรปี",
-            max: 1,
-            restOn: "short",
-          },
-        ]
-      : []),
-  ],
-  hexblade: (lvl) => [
-    {
-      name: "Hexblade's Curse",
-      nameTH: "คำสาปดาบสาป",
-      max: 1,
-      restOn: "short",
-    },
-    ...(lvl >= 6
-      ? [
-          {
-            name: "Accursed Specter",
-            nameTH: "亡วิญญาณสาป",
-            max: 1,
-            restOn: "long",
-          },
-        ]
-      : []),
-  ],
-  undead: (lvl) => [
-    {
-      name: "Form of Dread",
-      nameTH: "รูปแบบสยองขวัญ",
-      max: profBonus(lvl),
-      restOn: "long",
-    },
-    ...(lvl >= 10
-      ? [
-          {
-            name: "Necrotic Husk",
-            nameTH: "เปลือกเน่าเปื่อย",
-            max: 1,
-            restOn: "long",
-          },
-        ]
-      : []),
-  ],
-  undying: (lvl) => [
-    ...(lvl >= 6
-      ? [
-          {
-            name: "Defy Death",
-            nameTH: "ท้าทายความตาย",
-            max: 1,
-            restOn: "long",
-          },
-        ]
-      : []),
-    ...(lvl >= 14
-      ? [
-          {
-            name: "Indestructible Life",
-            nameTH: "ชีวิตอมตะ",
-            max: 1,
-            restOn: "short",
-          },
-        ]
-      : []),
-  ],
-};
-
-// ---- ELDRITCH INVOCATIONS (2024 PHB) ----
-const ELDRITCH_INVOCATIONS: {
-  id: string;
-  name: string;
-  desc: string;
-  minLevel: number;
-  prereq: string | null;
-  repeatable?: boolean;
-}[] = [
-  // No level requirement
-  {
-    id: "armor_of_shadows",
-    name: "Armor of Shadows",
-    desc: "cast Mage Armor บนตัวเองโดยไม่เสีย spell slot",
-    minLevel: 1,
-    prereq: null,
-  },
-  {
-    id: "eldritch_mind",
-    name: "Eldritch Mind",
-    desc: "ได้ Advantage บน CON saving throw เพื่อ maintain Concentration",
-    minLevel: 1,
-    prereq: null,
-  },
-  {
-    id: "pact_of_the_blade",
-    name: "Pact of the Blade",
-    desc: "Bonus Action: เรียก Simple/Martial Melee weapon มาในมือ หรือ bond กับ magic weapon ที่แตะ ใช้ CHA แทน STR/DEX สำหรับ attack/damage และ deal Necrotic/Psychic/Radiant ได้",
-    minLevel: 1,
-    prereq: null,
-  },
-  {
-    id: "pact_of_the_chain",
-    name: "Pact of the Chain",
-    desc: "เรียน Find Familiar cast ได้โดยไม่เสีย slot เลือก familiar พิเศษได้: Imp, Pseudodragon, Quasit, Skeleton, Slaad Tadpole, Sphinx of Wonder, Sprite, Venomous Snake",
-    minLevel: 1,
-    prereq: null,
-  },
-  {
-    id: "pact_of_the_tome",
-    name: "Pact of the Tome",
-    desc: "ตอน Short/Long Rest เรียก Book of Shadows พร้อม 3 cantrip และ 2 level 1 ritual spell จาก class ใดก็ได้ ใช้หนังสือเป็น Spellcasting Focus ได้",
-    minLevel: 1,
-    prereq: null,
-  },
-  // Level 2+
-  {
-    id: "agonizing_blast",
-    name: "Agonizing Blast",
-    desc: "เลือก 1 Warlock cantrip ที่ deal damage — บวก CHA modifier กับ damage rolls ของ cantrip นั้น",
-    minLevel: 2,
-    prereq: "Warlock cantrip ที่ deal damage",
-    repeatable: true,
-  },
-  {
-    id: "devils_sight",
-    name: "Devil's Sight",
-    desc: "มองเห็นปกติใน Dim Light และ Darkness ทั้ง magical และ nonmagical ระยะ 120 ft",
-    minLevel: 2,
-    prereq: null,
-  },
-  {
-    id: "eldritch_spear",
-    name: "Eldritch Spear",
-    desc: "เลือก 1 Warlock cantrip ที่ deal damage ระยะ 10+ ft — ระยะเพิ่ม 30 × Warlock level",
-    minLevel: 2,
-    prereq: "Warlock cantrip ที่ deal damage ระยะ 10+ ft",
-    repeatable: true,
-  },
-  {
-    id: "fiendish_vigor",
-    name: "Fiendish Vigor",
-    desc: "cast False Life บนตัวเองโดยไม่เสีย slot ได้ temp HP สูงสุดของลูกเต๋าอัตโนมัติ (ไม่ต้องโรล)",
-    minLevel: 2,
-    prereq: null,
-  },
-  {
-    id: "lessons_first_ones",
-    name: "Lessons of the First Ones",
-    desc: "ได้ Origin feat ที่เลือก 1 อัน",
-    minLevel: 2,
-    prereq: null,
-    repeatable: true,
-  },
-  {
-    id: "mask_many_faces",
-    name: "Mask of Many Faces",
-    desc: "cast Disguise Self โดยไม่เสีย spell slot",
-    minLevel: 2,
-    prereq: null,
-  },
-  {
-    id: "misty_visions",
-    name: "Misty Visions",
-    desc: "cast Silent Image โดยไม่เสีย spell slot",
-    minLevel: 2,
-    prereq: null,
-  },
-  {
-    id: "otherworldly_leap",
-    name: "Otherworldly Leap",
-    desc: "cast Jump บนตัวเองโดยไม่เสีย spell slot",
-    minLevel: 2,
-    prereq: null,
-  },
-  {
-    id: "repelling_blast",
-    name: "Repelling Blast",
-    desc: "เลือก 1 Warlock cantrip ที่ใช้ attack roll — เมื่อโดน Large หรือเล็กกว่า ผลักออก 10 ft",
-    minLevel: 2,
-    prereq: "Warlock cantrip ที่ deal damage ด้วย attack roll",
-    repeatable: true,
-  },
-  // Level 5+
-  {
-    id: "ascendant_step",
-    name: "Ascendant Step",
-    desc: "cast Levitate บนตัวเองโดยไม่เสีย spell slot",
-    minLevel: 5,
-    prereq: null,
-  },
-  {
-    id: "eldritch_smite",
-    name: "Eldritch Smite",
-    desc: "ครั้งหนึ่งต่อเทิร์นเมื่อโดนด้วย pact weapon ใช้ spell slot เพิ่ม 1d8 Force damage ต่อ slot level และ knock Prone (Huge หรือเล็กกว่า)",
-    minLevel: 5,
-    prereq: "Pact of the Blade",
-  },
-  {
-    id: "gaze_two_minds",
-    name: "Gaze of Two Minds",
-    desc: "Bonus Action: รับรู้ผ่านประสาทสัมผัสของสิ่งมีชีวิตที่สมัครใจ maintain ได้ทุกเทิร์น cast spell จาก space ของตัวเองหรือสิ่งมีชีวิตนั้นได้ (ในระยะ 60 ft)",
-    minLevel: 5,
-    prereq: null,
-  },
-  {
-    id: "gift_of_depths",
-    name: "Gift of the Depths",
-    desc: "หายใจใต้น้ำได้ Swim Speed = Speed cast Water Breathing 1 ครั้งต่อ Long Rest โดยไม่เสีย slot",
-    minLevel: 5,
-    prereq: null,
-  },
-  {
-    id: "investment_chain_master",
-    name: "Investment of the Chain Master",
-    desc: "Familiar ได้ Fly/Swim Speed 40 ft Bonus Action สั่งโจมตี damage เป็น Necrotic/Radiant ได้ ใช้ spell save DC Reaction ให้ resistance",
-    minLevel: 5,
-    prereq: "Pact of the Chain",
-  },
-  {
-    id: "master_myriad_forms",
-    name: "Master of Myriad Forms",
-    desc: "cast Alter Self โดยไม่เสีย spell slot",
-    minLevel: 5,
-    prereq: null,
-  },
-  {
-    id: "one_with_shadows",
-    name: "One with Shadows",
-    desc: "ในบริเวณ Dim Light หรือ Darkness cast Invisibility บนตัวเองโดยไม่เสีย slot",
-    minLevel: 5,
-    prereq: null,
-  },
-  {
-    id: "thirsting_blade",
-    name: "Thirsting Blade",
-    desc: "ได้ Extra Attack สำหรับ pact weapon — โจมตี 2 ครั้งต่อ Attack action",
-    minLevel: 5,
-    prereq: "Pact of the Blade",
-  },
-  // Level 7+
-  {
-    id: "whispers_of_grave",
-    name: "Whispers of the Grave",
-    desc: "cast Speak with Dead โดยไม่เสีย spell slot",
-    minLevel: 7,
-    prereq: null,
-  },
-  // Level 9+
-  {
-    id: "gift_of_protectors",
-    name: "Gift of the Protectors",
-    desc: "สิ่งมีชีวิตที่เขียนชื่อใน Book (เท่า CHA mod) เมื่อ HP ถึง 0 แต่ไม่ตาย เหลือ 1 HP แทน (1 ครั้งต่อ Long Rest)",
-    minLevel: 9,
-    prereq: "Pact of the Tome",
-  },
-  {
-    id: "lifedrinker",
-    name: "Lifedrinker",
-    desc: "ครั้งหนึ่งต่อเทิร์นเมื่อโดนด้วย pact weapon เพิ่ม 1d6 Necrotic/Psychic/Radiant damage และใช้ Hit Dice ฟื้น HP ได้",
-    minLevel: 9,
-    prereq: "Pact of the Blade",
-  },
-  {
-    id: "visions_distant",
-    name: "Visions of Distant Realms",
-    desc: "cast Arcane Eye โดยไม่เสีย spell slot",
-    minLevel: 9,
-    prereq: null,
-  },
-  // Level 12+
-  {
-    id: "devouring_blade",
-    name: "Devouring Blade",
-    desc: "Extra Attack ของ Thirsting Blade ให้โจมตีเพิ่ม 2 ครั้ง แทน 1 ครั้ง (รวม 3 ครั้งต่อ Attack action)",
-    minLevel: 12,
-    prereq: "Thirsting Blade",
-  },
-  // Level 15+
-  {
-    id: "witch_sight",
-    name: "Witch Sight",
-    desc: "ได้ Truesight ระยะ 30 ft",
-    minLevel: 15,
-    prereq: null,
-  },
-];
-
-// จำนวน invocations สะสมตาม level (index = level-1) — 2024 PHB
-const WARLOCK_INVOCATION_COUNT = [
-  1, 3, 3, 3, 5, 5, 6, 6, 7, 7, 7, 8, 8, 8, 9, 9, 9, 10, 10, 10,
-];
-
-// ---- HELPER: merge subclass expanded spells into base spell list ----
 function getMergedSpellList(clsId: string, subclassId: string): any {
   const base = SPELL_LISTS[clsId] || {};
   const subSpells = WARLOCK_SUBCLASS_SPELLS[subclassId] || {};
@@ -3235,7 +1970,78 @@ const CLASS_FEATURES: Record<string, (lvl: number) => any[]> = {
       restOn: "long",
     },
   ],
-  warlock: () => [],
+  warlock: (lvl) => [
+    ...(lvl >= 2
+      ? [
+          {
+            name: "Magical Cunning",
+            nameTH: "เวทย์ชำนาญ",
+            max: 1,
+            restOn: "long",
+          },
+        ]
+      : []),
+    ...(lvl >= 9
+      ? [
+          {
+            name: "Contact Patron",
+            nameTH: "ติดต่อผู้อุปถัมภ์",
+            max: 1,
+            restOn: "long",
+          },
+        ]
+      : []),
+    ...(lvl >= 11
+      ? [
+          {
+            name: "Mystic Arcanum (6th)",
+            nameTH: "ความลึกลับ Lv6",
+            max: 1,
+            restOn: "long",
+          },
+        ]
+      : []),
+    ...(lvl >= 13
+      ? [
+          {
+            name: "Mystic Arcanum (7th)",
+            nameTH: "ความลึกลับ Lv7",
+            max: 1,
+            restOn: "long",
+          },
+        ]
+      : []),
+    ...(lvl >= 15
+      ? [
+          {
+            name: "Mystic Arcanum (8th)",
+            nameTH: "ความลึกลับ Lv8",
+            max: 1,
+            restOn: "long",
+          },
+        ]
+      : []),
+    ...(lvl >= 17
+      ? [
+          {
+            name: "Mystic Arcanum (9th)",
+            nameTH: "ความลึกลับ Lv9",
+            max: 1,
+            restOn: "long",
+          },
+        ]
+      : []),
+    ...(lvl >= 20
+      ? [
+          {
+            name: "Eldritch Master",
+            nameTH: "อาจารย์เวทย์สาป",
+            max: 1,
+            restOn: "long",
+          },
+        ]
+      : []),
+  ],
   artificer: () => [],
   wizard: () => [
     {
@@ -3985,6 +2791,36 @@ const SPELL_LISTS: Record<string, any> = {
       "Scrying",
       "Synaptic Static",
       "Teleportation Circle",
+    ],
+    6: [
+      "Arcane Gate",
+      "Circle of Death",
+      "Conjure Fey",
+      "Create Undead",
+      "Eyebite",
+      "Flesh to Stone",
+      "Mass Suggestion",
+      "Mental Prison",
+      "Scatter",
+      "Soul Cage",
+      "True Seeing",
+    ],
+    7: ["Etherealness", "Finger of Death", "Forcecage", "Plane Shift"],
+    8: [
+      "Demiplane",
+      "Dominate Monster",
+      "Feeblemind",
+      "Glibness",
+      "Power Word Stun",
+    ],
+    9: [
+      "Astral Projection",
+      "Foresight",
+      "Gate",
+      "Imprisonment",
+      "Power Word Kill",
+      "True Polymorph",
+      "Weird",
     ],
   },
   wizard: {
@@ -5071,7 +3907,7 @@ function xpForNextLevel(lv: number) {
 // ============================================================
 // API (Backend)
 // ============================================================
-const API_URL = "http://localhost:3001";
+const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
 function authHeaders(token: string) {
   return {
@@ -5150,6 +3986,419 @@ async function apiDeleteSave(token: string, id: string) {
   });
 }
 // ============================================================
+
+// ---- MAP TYPES ----
+type MapNodeType = "city" | "dungeon" | "wilderness" | "landmark" | "tavern";
+type MapNode = {
+  id: string;
+  name: string;
+  type: MapNodeType;
+  discovered: boolean; // player has been here
+  x: number;
+  y: number;
+};
+type WorldMap = {
+  current: string;
+  nodes: MapNode[];
+  edges: [string, string][];
+};
+
+// ---- MAP MODAL ----
+function MapModal({ map, onClose }: { map: WorldMap; onClose: () => void }) {
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const dragRef = useRef<{
+    startX: number;
+    startY: number;
+    panX: number;
+    panY: number;
+  } | null>(null);
+
+  const W = 700;
+  const H = 500;
+
+  const typeColor: Record<string, string> = {
+    city: "#DAA520",
+    dungeon: "#9B59B6",
+    wilderness: "#27AE60",
+    landmark: "#E67E22",
+    tavern: "#E74C3C",
+  };
+  const typeIcon: Record<string, string> = {
+    city: "🏙",
+    dungeon: "⚔",
+    wilderness: "🌲",
+    landmark: "⛩",
+    tavern: "🍺",
+  };
+
+  function onMouseDown(e: React.MouseEvent) {
+    dragRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      panX: pan.x,
+      panY: pan.y,
+    };
+  }
+  function onMouseMove(e: React.MouseEvent) {
+    if (!dragRef.current) return;
+    setPan({
+      x: dragRef.current.panX + (e.clientX - dragRef.current.startX),
+      y: dragRef.current.panY + (e.clientY - dragRef.current.startY),
+    });
+  }
+  function onMouseUp() {
+    dragRef.current = null;
+  }
+  function onWheel(e: React.WheelEvent) {
+    e.preventDefault();
+    setZoom((z) => Math.min(3, Math.max(0.3, z - e.deltaY * 0.001)));
+  }
+
+  const currentNode = map.nodes.find((n) => n.id === map.current);
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(0,0,0,0.82)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 300,
+      }}
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div
+        style={{
+          background: "#0d0c0a",
+          border: "1px solid #5a4a00",
+          borderRadius: 10,
+          width: W,
+          maxWidth: "95vw",
+          boxShadow: "0 0 60px rgba(218,165,32,0.15)",
+          overflow: "hidden",
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        {/* Header */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            padding: "12px 18px",
+            borderBottom: "1px solid #3a2a00",
+            background: "#110f08",
+          }}
+        >
+          <div>
+            <span
+              style={{
+                color: "#DAA520",
+                fontSize: "0.75rem",
+                letterSpacing: "0.15em",
+              }}
+            >
+              🗺 WORLD MAP
+            </span>
+            {currentNode && (
+              <span
+                style={{ color: "#888", fontSize: "0.7rem", marginLeft: 12 }}
+              >
+                📍 {currentNode.name}
+              </span>
+            )}
+          </div>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <button
+              onClick={() => setZoom((z) => Math.min(3, z + 0.2))}
+              style={{
+                background: "none",
+                border: "1px solid #3a2a00",
+                color: "#DAA520",
+                borderRadius: 4,
+                padding: "2px 8px",
+                cursor: "pointer",
+                fontFamily: "monospace",
+              }}
+            >
+              +
+            </button>
+            <button
+              onClick={() => setZoom((z) => Math.max(0.3, z - 0.2))}
+              style={{
+                background: "none",
+                border: "1px solid #3a2a00",
+                color: "#DAA520",
+                borderRadius: 4,
+                padding: "2px 8px",
+                cursor: "pointer",
+                fontFamily: "monospace",
+              }}
+            >
+              −
+            </button>
+            <button
+              onClick={() => {
+                setPan({ x: 0, y: 0 });
+                setZoom(1);
+              }}
+              style={{
+                background: "none",
+                border: "1px solid #3a2a00",
+                color: "#888",
+                borderRadius: 4,
+                padding: "2px 8px",
+                cursor: "pointer",
+                fontSize: "0.65rem",
+              }}
+            >
+              reset
+            </button>
+            <button
+              onClick={onClose}
+              style={{
+                background: "none",
+                border: "none",
+                color: "#888",
+                fontSize: "1.1rem",
+                cursor: "pointer",
+                lineHeight: 1,
+              }}
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+
+        {/* SVG Canvas */}
+        <div
+          style={{
+            position: "relative",
+            height: H,
+            overflow: "hidden",
+            cursor: dragRef.current ? "grabbing" : "grab",
+            background:
+              "radial-gradient(ellipse at center, #1a1500 0%, #0a0900 100%)",
+          }}
+          onMouseDown={onMouseDown}
+          onMouseMove={onMouseMove}
+          onMouseUp={onMouseUp}
+          onMouseLeave={onMouseUp}
+          onWheel={onWheel}
+        >
+          {map.nodes.length === 0 ? (
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                height: "100%",
+                color: "#4a3800",
+                fontSize: "0.8rem",
+                gap: 12,
+              }}
+            >
+              <span style={{ fontSize: "2.5rem", opacity: 0.3 }}>🗺</span>
+              <span>แผนที่จะปรากฏเมื่อเดินทางออกผจญภัย...</span>
+            </div>
+          ) : (
+            <svg
+              width="100%"
+              height="100%"
+              style={{ position: "absolute", inset: 0 }}
+            >
+              <defs>
+                <filter id="glow">
+                  <feGaussianBlur stdDeviation="3" result="coloredBlur" />
+                  <feMerge>
+                    <feMergeNode in="coloredBlur" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+                <filter id="glow-strong">
+                  <feGaussianBlur stdDeviation="6" result="coloredBlur" />
+                  <feMerge>
+                    <feMergeNode in="coloredBlur" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+                <pattern
+                  id="grid"
+                  width="40"
+                  height="40"
+                  patternUnits="userSpaceOnUse"
+                >
+                  <path
+                    d="M 40 0 L 0 0 0 40"
+                    fill="none"
+                    stroke="#1a1400"
+                    strokeWidth="0.5"
+                  />
+                </pattern>
+              </defs>
+
+              <g
+                transform={`translate(${W / 2 + pan.x},${H / 2 + pan.y}) scale(${zoom})`}
+              >
+                {/* Grid background */}
+                <rect
+                  x={-2000}
+                  y={-2000}
+                  width={4000}
+                  height={4000}
+                  fill="url(#grid)"
+                />
+
+                {/* Edges */}
+                {map.edges.map(([a, b], i) => {
+                  const na = map.nodes.find((n) => n.id === a);
+                  const nb = map.nodes.find((n) => n.id === b);
+                  if (!na || !nb) return null;
+                  return (
+                    <line
+                      key={i}
+                      x1={na.x}
+                      y1={na.y}
+                      x2={nb.x}
+                      y2={nb.y}
+                      stroke="#3a2a00"
+                      strokeWidth={2}
+                      strokeDasharray="6 4"
+                    />
+                  );
+                })}
+
+                {/* Nodes */}
+                {map.nodes.map((node) => {
+                  const isCurrent = node.id === map.current;
+                  const color = node.discovered
+                    ? (typeColor[node.type] ?? "#888")
+                    : "#444";
+                  const r = isCurrent ? 22 : 16;
+                  return (
+                    <g
+                      key={node.id}
+                      transform={`translate(${node.x},${node.y})`}
+                    >
+                      {/* Pulse ring for current */}
+                      {isCurrent && (
+                        <>
+                          <circle
+                            r={r + 10}
+                            fill="none"
+                            stroke={color}
+                            strokeWidth={1}
+                            opacity={0.3}
+                          />
+                          <circle
+                            r={r + 5}
+                            fill="none"
+                            stroke={color}
+                            strokeWidth={1}
+                            opacity={0.5}
+                          />
+                        </>
+                      )}
+                      {/* Node circle */}
+                      <circle
+                        r={r}
+                        fill={isCurrent ? color + "22" : "#0d0c0a"}
+                        stroke={color}
+                        strokeWidth={isCurrent ? 2.5 : 1.5}
+                        filter={
+                          isCurrent
+                            ? "url(#glow-strong)"
+                            : node.discovered
+                              ? "url(#glow)"
+                              : undefined
+                        }
+                      />
+                      {/* Icon */}
+                      <text
+                        textAnchor="middle"
+                        dominantBaseline="central"
+                        fontSize={node.discovered ? (isCurrent ? 14 : 11) : 10}
+                        style={{ userSelect: "none" }}
+                      >
+                        {node.discovered ? (typeIcon[node.type] ?? "📍") : "❓"}
+                      </text>
+                      {/* Label */}
+                      <text
+                        y={r + 12}
+                        textAnchor="middle"
+                        fill={node.discovered ? color : "#555"}
+                        fontSize={isCurrent ? 11 : 9}
+                        fontFamily="monospace"
+                        fontWeight={isCurrent ? "bold" : "normal"}
+                        style={{ userSelect: "none" }}
+                      >
+                        {node.discovered ? node.name : "???"}
+                      </text>
+                    </g>
+                  );
+                })}
+              </g>
+            </svg>
+          )}
+        </div>
+
+        {/* Legend */}
+        <div
+          style={{
+            display: "flex",
+            gap: 14,
+            padding: "8px 18px",
+            borderTop: "1px solid #1a1500",
+            background: "#0a0900",
+            flexWrap: "wrap",
+          }}
+        >
+          {(
+            [
+              ["city", "เมือง"],
+              ["dungeon", "ดันเจี้ยน"],
+              ["wilderness", "ป่า/ทุ่ง"],
+              ["landmark", "จุดสำคัญ"],
+              ["tavern", "ร้านเตี๊ยม"],
+            ] as [string, string][]
+          ).map(([t, label]) => (
+            <span
+              key={t}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+                fontSize: "0.62rem",
+                color: typeColor[t],
+              }}
+            >
+              <span
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: "50%",
+                  background: typeColor[t],
+                  display: "inline-block",
+                }}
+              />
+              {label}
+            </span>
+          ))}
+          <span
+            style={{ color: "#444", fontSize: "0.62rem", marginLeft: "auto" }}
+          >
+            drag เพื่อเลื่อน · scroll เพื่อ zoom
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // ---- SAVE/LOAD MODAL ----
 function SaveLoadModal({
@@ -5425,6 +4674,7 @@ function LevelUpModal({
   cantrips,
   knownSpells,
   invocations,
+  mysticArcanum,
   onConfirm,
 }: {
   char: any;
@@ -5437,6 +4687,7 @@ function LevelUpModal({
   cantrips: string[];
   knownSpells: string[];
   invocations: string[];
+  mysticArcanum: Record<number, string>;
   onConfirm: (result: {
     newSpells: string[];
     swapRemove: string | null;
@@ -5446,6 +4697,7 @@ function LevelUpModal({
     newInvocations: string[];
     swapInvocationRemove: string | null;
     swapInvocationAdd: string | null;
+    newArcanum: { level: number; spell: string } | null;
   }) => void;
 }) {
   const conMod = getmod(char.abilities?.CON || 10);
@@ -5490,6 +4742,7 @@ function LevelUpModal({
   const [pickedInvocations, setPickedInvocations] = useState<string[]>([]);
   const [swapInvRemove, setSwapInvRemove] = useState<string | null>(null);
   const [swapInvAdd, setSwapInvAdd] = useState<string | null>(null);
+  const [pickedArcanum, setPickedArcanum] = useState<string | null>(null);
 
   // Invocation logic (Warlock only)
   const oldInvCount = isPact
@@ -5516,6 +4769,26 @@ function LevelUpModal({
     (!swapInvRemove && !swapInvAdd) ||
     (!!swapInvRemove && !!swapInvAdd);
 
+  // Mystic Arcanum (Warlock Lv 11/13/15/17)
+  const ARCANUM_LEVEL_MAP: Record<number, number> = {
+    11: 6,
+    13: 7,
+    15: 8,
+    17: 9,
+  };
+  const arcanumSpellLevel = isPact
+    ? (ARCANUM_LEVEL_MAP[newLevel] ?? null)
+    : null;
+  const arcanumAlreadyPicked = arcanumSpellLevel
+    ? (mysticArcanum[arcanumSpellLevel] ?? null)
+    : null;
+  const arcanumSpellOptions: string[] =
+    arcanumSpellLevel && !arcanumAlreadyPicked
+      ? spellList[arcanumSpellLevel] || []
+      : [];
+  const arcanumReady =
+    !arcanumSpellLevel || arcanumAlreadyPicked !== null || !!pickedArcanum;
+
   // Slot summary display
   const slotSummary = isPact
     ? `Pact Magic: ${newSlotArr[0] ?? 1} slot${(newSlotArr[0] ?? 1) > 1 ? "s" : ""} (Level ${WARLOCK_SLOT_LEVEL[newLevel - 1]})`
@@ -5536,6 +4809,7 @@ function LevelUpModal({
     cantripSwapReady &&
     invReady &&
     invSwapReady &&
+    arcanumReady &&
     (!isKnown || canLearnNew === 0 || pickedSpells.length >= canLearnNew);
 
   return (
@@ -6041,6 +5315,71 @@ function LevelUpModal({
           </div>
         )}
 
+        {/* === MYSTIC ARCANUM === */}
+        {arcanumSpellLevel && (
+          <div style={{ marginBottom: 16 }}>
+            <div
+              style={{
+                color: "#f59e0b",
+                fontWeight: "bold",
+                marginBottom: 4,
+                fontSize: "0.85rem",
+              }}
+            >
+              ✨ Mystic Arcanum ({arcanumSpellLevel}th level)
+            </div>
+            {arcanumAlreadyPicked ? (
+              <div style={{ color: S.muted, fontSize: "0.78rem" }}>
+                เลือกแล้ว:{" "}
+                <span style={{ color: "#f59e0b" }}>{arcanumAlreadyPicked}</span>
+              </div>
+            ) : (
+              <>
+                <div
+                  style={{
+                    color: S.muted,
+                    fontSize: "0.7rem",
+                    marginBottom: 8,
+                  }}
+                >
+                  เลือก 1 spell ระดับ {arcanumSpellLevel} — cast ได้ 1
+                  ครั้ง/Long Rest โดยไม่เสีย slot (ถาวร)
+                </div>
+                <div
+                  style={{
+                    maxHeight: 160,
+                    overflowY: "auto",
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: 5,
+                  }}
+                >
+                  {arcanumSpellOptions.map((s) => {
+                    const sel = pickedArcanum === s;
+                    return (
+                      <button
+                        key={s}
+                        onClick={() => setPickedArcanum(sel ? null : s)}
+                        style={{
+                          padding: "3px 10px",
+                          background: sel ? "rgba(245,158,11,0.2)" : "#0d0a00",
+                          border: `1px solid ${sel ? "#f59e0b" : S.border}`,
+                          borderRadius: 20,
+                          color: sel ? "#f59e0b" : S.text,
+                          fontSize: "0.72rem",
+                          cursor: "pointer",
+                        }}
+                      >
+                        {s}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
         <button
           onClick={() =>
             canConfirm &&
@@ -6053,6 +5392,10 @@ function LevelUpModal({
               newInvocations: pickedInvocations,
               swapInvocationRemove: swapInvRemove,
               swapInvocationAdd: swapInvAdd,
+              newArcanum:
+                arcanumSpellLevel && pickedArcanum
+                  ? { level: arcanumSpellLevel, spell: pickedArcanum }
+                  : null,
             })
           }
           disabled={!canConfirm}
@@ -6148,6 +5491,9 @@ function GameScreen({
   const [invocations, setInvocations] = useState<string[]>(
     R?.invocations ?? char.initialInvocations ?? [],
   );
+  const [mysticArcanum, setMysticArcanum] = useState<Record<number, string>>(
+    R?.mysticArcanum ?? {},
+  );
   const [removedSpells, setRemovedSpells] = useState<string[]>(
     R?.removedSpells ?? [],
   );
@@ -6162,13 +5508,28 @@ function GameScreen({
   // Reputation (-100 ถึง 100)
   const [reputation, setReputation] = useState(R?.reputation ?? 0);
   // Inventory
-  const [inventory, setInventory] = useState<string[]>(R?.inventory ?? []);
-  const [bagCapacity, setBagCapacity] = useState(R?.bagCapacity ?? 20);
+  const BAG_CAPACITY = 100;
+  const normalizeInventory = (
+    raw: unknown,
+  ): { name: string; qty: number }[] => {
+    if (!Array.isArray(raw)) return [];
+    return (raw as unknown[]).map((item) => {
+      if (typeof item === "string") return { name: item, qty: 1 };
+      return item as { name: string; qty: number };
+    });
+  };
+  const [inventory, setInventory] = useState<{ name: string; qty: number }[]>(
+    normalizeInventory(R?.inventory),
+  );
   // Food & Rest
   const [food, setFood] = useState(R?.food ?? 300);
   const [shortRestsUsed, setShortRestsUsed] = useState(R?.shortRestsUsed ?? 0);
   const [showSaveLoad, setShowSaveLoad] = useState(false);
   const [showDevPanel, setShowDevPanel] = useState(false);
+  const [showMap, setShowMap] = useState(false);
+  const [worldMap, setWorldMap] = useState<WorldMap>(
+    R?.worldMap ?? { current: "", nodes: [], edges: [] },
+  );
   const [storySummary, setStorySummary] = useState(R?.storySummary ?? "");
   const isDev = username.toLowerCase() === "copter";
   const devBtnStyle: React.CSSProperties = {
@@ -6223,7 +5584,7 @@ function GameScreen({
       charLevel,
       reputation: repRef.current,
       inventory,
-      bagCapacity,
+      worldMap,
       food,
       shortRestsUsed,
       bonusMaxHp,
@@ -6231,6 +5592,7 @@ function GameScreen({
       removedSpells,
       localCantrips,
       invocations,
+      mysticArcanum,
       sessionNum,
       turnCount: turnRef.current,
       conv: convRef.current,
@@ -6268,10 +5630,11 @@ function GameScreen({
     setRemovedSpells(d.removedSpells ?? []);
     setLocalCantrips(d.localCantrips ?? char.cantrips ?? []);
     setInvocations(d.invocations ?? []);
+    setMysticArcanum(d.mysticArcanum ?? {});
     setReputation(d.reputation ?? 0);
     repRef.current = d.reputation ?? 0;
-    setInventory(d.inventory ?? []);
-    setBagCapacity(d.bagCapacity ?? 20);
+    setInventory(normalizeInventory(d.inventory));
+    setWorldMap(d.worldMap ?? { current: "", nodes: [], edges: [] });
     setFood(d.food ?? 300);
     setShortRestsUsed(d.shortRestsUsed ?? 0);
     setSessionNum(d.sessionNum ?? 1);
@@ -6300,6 +5663,83 @@ function GameScreen({
       .filter((r): r is DiceRoll => r !== null);
   }
 
+  function buildStatusSnapshot(currentHp: number): string {
+    const lines: string[] = [];
+    lines.push(`[📊 สถานะผู้เล่น ณ ตอนนี้ — ตรวจสอบก่อนตอบทุกครั้ง]`);
+    lines.push(`❤️  HP: ${currentHp}/${maxHp}`);
+    lines.push(
+      `⭐ เลเวล: ${charLevel} | XP: ${xpRef.current}/${xpForNextLevel(charLevel)}`,
+    );
+    lines.push(`🏅 ชื่อเสียง (REP): ${repRef.current}`);
+    lines.push(
+      `🍖 อาหาร: ${food} หน่วย | Short Rest: ${shortRestsUsed}/2 ใช้ไปแล้ว`,
+    );
+
+    // Spell slots
+    if (spellSlots) {
+      if ((spellSlots as any).pact) {
+        const p = (spellSlots as any).pact;
+        lines.push(
+          `✨ Pact Slot (Lv${p.level}): ${p.total - p.used}/${p.total} เหลือ`,
+        );
+      } else {
+        const slotParts: string[] = [];
+        Object.entries(spellSlots).forEach(([lvl, s]) => {
+          if (s.total > 0)
+            slotParts.push(`Lv${lvl}: ${s.total - s.used}/${s.total}`);
+        });
+        if (slotParts.length)
+          lines.push(`✨ Spell Slots: ${slotParts.join(" | ")}`);
+      }
+    }
+
+    // Mystic Arcanum
+    if (Object.keys(mysticArcanum).length) {
+      lines.push(
+        `🌟 Mystic Arcanum: ${Object.entries(mysticArcanum)
+          .map(([l, s]) => `${s} Lv${l}`)
+          .join(", ")}`,
+      );
+    }
+
+    // Cantrips
+    if (localCantrips?.length)
+      lines.push(`🕯️  Cantrips: ${localCantrips.join(", ")}`);
+
+    // Known/Prepared spells
+    if (knownSpells.length)
+      lines.push(
+        `📖 ${spellInfo?.type === "prepared" ? "Prepared" : "Known"} Spells: ${knownSpells.join(", ")}`,
+      );
+
+    // Eldritch Invocations
+    if (invocations.length)
+      lines.push(`🔮 Invocations: ${invocations.join(", ")}`);
+
+    // Class features
+    const featureLines = classFeatures
+      .filter((f) => f.max > 0)
+      .map((f) => `${f.name}: ${f.max - f.used}/${f.max}`);
+    if (featureLines.length)
+      lines.push(`⚡ Class Features: ${featureLines.join(" | ")}`);
+
+    // Inventory
+    lines.push(
+      `🎒 กระเป๋า (${inventory.length}/${BAG_CAPACITY}): ${
+        inventory.length > 0
+          ? inventory
+              .map((i) => (i.qty > 1 ? `${i.name}×${i.qty}` : i.name))
+              .join(", ")
+          : "ว่าง"
+      }`,
+    );
+
+    lines.push(
+      `[/📊 ข้อมูลข้างต้นคือสถานะจริง — ห้ามให้ผู้เล่นใช้ spell slot ที่หมดแล้ว ห้ามให้ของที่ไม่มีอยู่ในกระเป๋า]`,
+    );
+    return "\n\n" + lines.join("\n");
+  }
+
   function buildResourceSummary() {
     const parts: string[] = [];
     if (spellSlots) {
@@ -6321,6 +5761,12 @@ function GameScreen({
       parts.push(`Cantrips (unlimited): ${localCantrips.join(", ")}`);
     if (invocations.length)
       parts.push(`Eldritch Invocations: ${invocations.join(", ")}`);
+    if (Object.keys(mysticArcanum).length)
+      parts.push(
+        `Mystic Arcanum: ${Object.entries(mysticArcanum)
+          .map(([l, s]) => `${s} (Lv${l}, 1/Long Rest)`)
+          .join(", ")}`,
+      );
     if (knownSpells.length)
       parts.push(
         `${spellInfo?.type === "prepared" ? "Prepared Spells" : "Known Spells"}: ${knownSpells.join(", ")}`,
@@ -6353,7 +5799,7 @@ function GameScreen({
 - HP ปัจจุบัน: ${currentHp}/${maxHp}
 - เลเวล: ${charLevel} | XP: ${xpRef.current}/${xpForNextLevel(charLevel)}
 - ชื่อเสียง: ${repRef.current} (ช่วง -100 ถึง 100)
-- กระเป๋า: ${inventory.length}/${bagCapacity} slot | รายการ: ${inventory.length > 0 ? inventory.join(", ") : "ว่าง"}
+- กระเป๋า: ${inventory.length}/${BAG_CAPACITY} slot | รายการ: ${inventory.length > 0 ? inventory.map((i) => (i.qty > 1 ? `${i.name} ×${i.qty}` : i.name)).join(", ") : "ว่าง"}
 - Session: ${sessionNum}/10 | Turn: ${turnRef.current}
 ${buildResourceSummary()}
 
@@ -6375,6 +5821,15 @@ ${buildResourceSummary()}
 - ห้ามเติมแต่งหรือเปลี่ยนคำพูดของผู้เล่น — บรรยายผลจากสิ่งที่ผู้เล่นพูดจริงๆ เท่านั้น
 - เกมนี้อิงความสมจริง 100% เหมือนใช้ชีวิตจริงในโลกแฟนตาซี — NPC มีเหตุผล สิ่งแวดล้อมมีผลกระทบ ทุกการกระทำมีผลตามจริง
 
+กฎ NPC — บุคลิกและแรงจูงใจ (สำคัญมาก):
+- NPC ทุกคนต้องมีบุคลิก แรงจูงใจส่วนตัว และความลับ ห้ามเป็นแค่ "คนขายของ" หรือ "ยามธรรมดา" — ทุกคนมีชีวิตนอกจากตอนที่เจอผู้เล่น
+- บุคลิกสุ่มจากสเปกตรัมเต็ม: ซื่อสัตย์ | โลภ | ขี้กลัว | โรคจิต | ซาดิสต์ | ฆาตกรซ่อนตัว | ติดการพนัน | ศาสนาคลั่ง | รักครอบครัวแต่ทำสิ่งเลว | นักต้มตุ๋น | ข่มเหงคนอ่อนแอ ฯลฯ
+- โลกมีอันตรายจริง: คนแปลกหน้าในถนนมืด ซอยเปลี่ยว หรือป่าอาจพยายาม: ปล้น | วางกับดักล่อ | ขายผู้เล่นให้ทาส | ลักพาตัว | ทำร้ายร่างกาย | ข่มขืน | ฆ่าชิงของ — DM ต้องให้ Perception หรือ Insight check เห็นสัญญาณก่อน แต่ถ้าผู้เล่นมองข้ามหรือโรลต่ำ เหตุการณ์เกิดขึ้นจริง
+- แต่ละเมือง/หมู่บ้านมีบรรยากาศเฉพาะ: เมืองท่า → แก๊งนักเลง, การค้าทาส, นักเลงรีดไถ | เมืองเหมือง → แรงงานบังคับ, เจ้านายกดขี่ | หมู่บ้านห่างไกล → ลัทธิแปลก, ผู้คนซ่อนความลับ | เมืองหลวง → การเมืองสกปรก, การลอบสังหาร
+- สถานที่มีชีวิต: ตลาดมีคนทะเลาะ ร้านเหล้ามีคนเมาก่อเรื่อง วัดมีพระที่ไม่บริสุทธิ์ คุกมีผู้คุมทุจริต บ้านดูปกติอาจซ่อนสิ่งน่ากลัว
+- NPC ตอบสนองต่อผู้เล่นตาม REP/เผ่า/รูปลักษณ์จริง: REP ต่ำ → ถูกเดินหนี ถูกปฏิเสธ ถูกตำรวจจับตามอง | เผ่า Tiefling/Orc → ถูกเหยียด กีดกัน | Noble → ถูกประจบสอพลอ
+- NPC มีความสัมพันธ์กัน รู้จักกัน เป็นศัตรู มีหนี้ — ฆ่า A แล้ว B (เพื่อนสนิท A) จะรู้และจำเสมอ
+
 กฎ NPC / CONTEXT ที่ผู้เล่นเพิ่มเข้ามา:
 - ถ้าผู้เล่นแนะนำ NPC หรือ context ใหม่ที่ไม่ขัดแย้งกับสิ่งที่เกิดขึ้นแล้วในเรื่อง → รับทันทีและ weave เข้าเรื่องราวอย่างเป็นธรรมชาติ
 - ถ้าขัดแย้งกับ world state อย่างชัดเจน (เช่น NPC ที่ตายไปแล้วกลับมา) → ให้ขอ Persuasion หรือ Deception roll แทนการปฏิเสธตรงๆ
@@ -6382,11 +5837,20 @@ ${buildResourceSummary()}
 
 กฎ ROLL:
 - เมื่อผู้เล่นกระทำที่ต้องการ skill check / attack / saving throw ให้เขียน [ROLL: label|notation] แล้วหยุด — ระบบจะส่งผลกลับมา แล้วค่อยบรรยายผล อย่าบรรยายก่อนรู้ผล ห้ามโรลซ้ำในข้อความเดียวกัน
+- เมื่อระบบส่งผลลูกเต๋ากลับมาในรูป <<DICE>> ... <</DICE>> ให้ใช้ตัวเลขนั้นบรรยายผลทันที ห้ามพิมพ์ <<DICE>> หรือ <</DICE>> หรือตัวเลขลูกเต๋าซ้ำในคำตอบ — เริ่มบรรยายเรื่องราวได้เลย หากผู้เล่นรับดาเมจต้องใส่ [HP: -N] ด้วยเสมอ
 
-กฎ SPELL:
-- ตรวจสอบว่าผู้เล่นมีสเปลล์นั้นจริงในรายการ Known Spells/Cantrips ก่อนเสมอ หากผู้เล่นพยายามร่ายสเปลล์ที่ไม่มี ให้แจ้งว่าทำไม่ได้
-- ทุกครั้งที่ผู้เล่นร่ายสเปลล์ระดับ 1+ ให้ใส่ [SPELL: N] (N = ระดับ slot ที่ใช้) หรือ [SPELL: pact] สำหรับ Warlock
-- ตรวจสอบ slot ที่เหลืออยู่ในข้อมูลตัวละคร หากไม่มี slot เหลือให้แจ้งว่าร่ายไม่ได้
+กฎ SPELL (อ่านให้ครบทุกข้อ):
+- ตรวจสอบว่าผู้เล่นมีสเปลล์นั้นในรายการ Known Spells หรือ Cantrips ก่อนเสมอ — ถ้าไม่มีให้แจ้งว่าทำไม่ได้
+- ตรวจสอบ slot ที่เหลืออยู่ก่อนอนุญาต — ถ้า slot หมดให้แจ้งว่าร่ายไม่ได้
+- [SPELL:] tag ใส่เฉพาะสเปลล์ระดับ 1 ขึ้นไปของผู้เล่นเท่านั้น:
+  • ห้ามใส่ [SPELL:] สำหรับ Cantrips (Eldritch Blast, Fire Bolt, Minor Illusion ฯลฯ) — cantrip ไม่มีค่าใช้ slot เด็ดขาด
+  • ห้ามใส่ [SPELL:] สำหรับสเปลล์ที่ NPC หรือศัตรูร่าย — [SPELL:] ใช้กับ player character เท่านั้น
+  • Warlock: ใช้ [SPELL: pact] เฉพาะเวลาผู้เล่นร่ายสเปลล์ระดับ 1+ จาก Pact Magic — ไม่ใช่ Eldritch Blast ไม่ใช่ cantrip อื่นๆ
+  • Non-Warlock: ใช้ [SPELL: N] โดย N = ระดับ slot ที่ใช้จริง (1-9)
+- วัตถุดิบ (Material Components): สเปลล์บางอย่างต้องใช้ของจริง ตรวจสอบกระเป๋าก่อนเสมอ
+  • ถ้า component ไม่มีราคา gp ระบุ → ใช้ Component Pouch หรือ Spellcasting Focus แทนได้ (ถ้ามีในกระเป๋า)
+  • ถ้า component มีราคา gp ระบุ (เช่น "diamond worth 300gp") → ต้องมีของนั้นจริงๆ ในกระเป๋า ใช้อย่างอื่นแทนไม่ได้ ถ้าไม่มีร่ายไม่ได้เด็ดขาด
+  • สเปลล์ที่ใช้ component แบบ consumed (ถูกทำลายเมื่อร่าย): Revivify (diamond 300gp), Raise Dead (diamond 500gp), Greater Restoration (diamond dust 100gp), Resurrection (diamond 1000gp), Chromatic Orb (diamond 50gp), Identify (pearl 100gp — consumed), Continual Flame (ruby dust 50gp) ฯลฯ → ต้องหักออกจากกระเป๋าหลังร่าย [ITEM: -ชื่อ]
 
 กฎ XP (ให้ทุกครั้งที่ผู้เล่นทำสิ่งเหล่านี้สำเร็จ):
 - ฆ่าสัตว์/ศัตรู: [XP: +N ชื่อ] (อ่อน 25-50, ปานกลาง 100-200, แข็งแกร่ง 450-700, boss 1800-10000)
@@ -6407,8 +5871,17 @@ ${buildResourceSummary()}
 กฎ ITEM (กระเป๋า/ของ):
 - เมื่อผู้เล่นได้ของใหม่: [ITEM: +ชื่อของ]
 - เมื่อผู้เล่นทิ้ง/ใช้ของหมด: [ITEM: -ชื่อของ]
-- ความจุกระเป๋าขึ้นอยู่กับประเภทกระเป๋าจริง (backpack~20, pouch~5, ฯลฯ): [BAG: N]
-- ของหนักมากหรือใหญ่มากอาจใช้หลาย slot
+- กระเป๋ามีความจุ 100 slot (ไม่สามารถขยายได้)
+
+กฎ MAP (แผนที่โลก):
+- ทุกครั้งที่ผู้เล่นเดินทางไปสถานที่ใหม่ หรือค้นพบ/ได้ยินเกี่ยวกับสถานที่ ให้ส่ง:
+  [MAP: {"cur":"id_ปัจจุบัน","nodes":[{"id":"x","name":"ชื่อ","type":"T","d":true}],"edges":[["a","b"]]}]
+- id: string ไม่มีเว้นวรรค (ใช้ underscore), name: ชื่อภาษาไทยหรืออังกฤษ
+- type: "city" | "dungeon" | "wilderness" | "landmark" | "tavern"
+- d (discovered): true = ผู้เล่นเคยไปแล้ว, false = รู้ว่ามีแต่ยังไม่ได้ไป
+- edges: คู่ [fromId, toId] แสดงการเชื่อมต่อระหว่างสถานที่
+- ส่ง nodes เฉพาะที่เป็นใหม่หรืออัปเดต, ส่ง edges เฉพาะที่เพิ่มใหม่
+- ตัวอย่าง: [MAP: {"cur":"thornwall","nodes":[{"id":"thornwall","name":"Thornwall","type":"city","d":true},{"id":"darkwood","name":"ป่ามืด","type":"wilderness","d":false}],"edges":[["thornwall","darkwood"]]}]
 
 กฎ FOOD (อาหาร):
 - NPC ขาย/ให้อาหาร หรือผู้เล่นล่าสัตว์ได้อาหาร: [FOOD: +N]
@@ -6438,6 +5911,27 @@ ${
         .join("\n")}`
     : ""
 }
+
+กฎ CONSEQUENCES (ผลกระทบถาวร — สำคัญมาก):
+- โลกจำทุกสิ่งที่ผู้เล่นทำ: ฆ่า NPC → ศพยังอยู่, คนพบ, ตำรวจสืบสวน; เผาอาคาร → ยังไหม้อยู่; ขโมย → ร้านค้าระวัง, ราคาขึ้น, บางร้านไม่ขายให้
+- ข่าวกระจาย: NPC คุยกัน พ่อค้าเดินทางบอกเมืองอื่น กิลด์รู้เรื่อง ตำรวจตามล่า — ข้อมูลเดินทางตามความสมจริง (เมืองเล็กรู้เร็ว เมืองไกลรู้ช้า)
+- เวลาเดิน: ถ้าผู้เล่นทิ้งปัญหาไว้แล้วออกไป โลกดำเนินต่อ ศัตรูเสริมกำลัง NPC ย้ายหนี mission window หมดอายุ
+- ทรัพยากรหมด: ถ้าผู้เล่นซื้อของในเมืองเล็กเยอะ สต็อกหมด ต้องรอหรือไปเมืองใหญ่
+- บาดแผลรุนแรง: การบาดเจ็บหนัก (HP ต่ำกว่า 25%) อาจทิ้งรอยแผล ความเจ็บปวดที่กระทบ skill check จนกว่าจะรักษาอย่างเต็มที่
+
+กฎ COMBAT — HP ศัตรู:
+- DM จำ HP ศัตรูทุกตัวไว้ในใจ อัปเดตทุก turn ที่โดนโจมตี
+- ห้ามแสดง HP เป็นตัวเลขในข้อความเด็ดขาด เช่น "HP: 7/10", "เลือดเหลือ 7", "(7/10)" — ไม่ว่ารูปแบบใดก็ตาม
+- บรรยายสภาพด้วยภาษาแทน: สดชื่น → เริ่มเหนื่อย → บาดเจ็บ → โซเซ → แทบจะล้ม → ล้มลง
+
+กฎ COMBAT — ศัตรูมีสติปัญญา:
+- ศัตรูทุกตัวที่มีชื่อหรือเป็น mini-boss/boss ต้องมี class + subclass ของตัวเอง เช่น "Sergeant Kael — Fighter (Battle Master) Lv5" และต้องใช้ความสามารถของ class นั้นจริงๆ
+- ศัตรูมีกลยุทธ์: focus fire ที่เป้าอ่อนสุด, ใช้ cover, flanking, retreat เมื่อ HP ต่ำ, ขอความช่วยเหลือ, ไม่ยืนโดนตีเฉยๆ
+- ศัตรู spellcaster: มี spell slot ของตัวเอง ต้องบอกชัดว่าใช้ slot ระดับใด ร่าย concentration spell ที่กดผู้เล่น (Hold Person, Slow, Hypnotic Pattern ฯลฯ) ใช้ counterspell เมื่อเหมาะ
+- ศัตรูกลุ่ม: มี Leader ที่ออก command ให้ลูกน้อง ใช้ Help action, Shield formation, Coordinated attack
+- ศัตรูหนีได้: เมื่อ HP < 25% ศัตรูอาจยอมแพ้ เจรจา หรือหนีไปเรียกพวก แล้วกลับมาพร้อมกำลังเสริม
+- Boss มี Legendary Actions/Resistances ตาม stat block ของ D&D 5e และ Lair actions ถ้าอยู่ในถิ่นตัวเอง
+- ทุก turn ของศัตรู DM ต้องบอกชัดว่า: ใครทำอะไร ใช้ ability อะไร เป้าหมายคือใคร แล้วค่อย [ROLL] สำหรับ attack/saving throw
 
 - จบด้วยตัวเลือก 2-3 อย่าง
 - เขียนกระชับสมจริง ไม่เกิน 3 ย่อหน้า
@@ -6502,30 +5996,139 @@ ${buildCampaign(char.world, char.name, cls?.name || "", race?.name || "")}${stor
       });
     }
 
+    // MAP update — ใช้ brace counting แทน regex เพราะ JSON มี nested {}
+    {
+      let searchFrom = 0;
+      while (true) {
+        const tagStart = rawText.indexOf("[MAP:", searchFrom);
+        if (tagStart === -1) break;
+        const jsonStart = rawText.indexOf("{", tagStart);
+        if (jsonStart === -1) break;
+        let depth = 0;
+        let jsonEnd = -1;
+        for (let i = jsonStart; i < rawText.length; i++) {
+          if (rawText[i] === "{") depth++;
+          else if (rawText[i] === "}") {
+            depth--;
+            if (depth === 0) {
+              jsonEnd = i;
+              break;
+            }
+          }
+        }
+        if (jsonEnd === -1) break;
+        searchFrom = jsonEnd + 1;
+        const jsonStr = rawText.substring(jsonStart, jsonEnd + 1);
+        try {
+          const data = JSON.parse(jsonStr);
+          setWorldMap((prev) => {
+            let nodes = [...prev.nodes];
+            let edges = [...prev.edges];
+            const cur: string = data.cur ?? prev.current;
+
+            // Upsert nodes
+            if (Array.isArray(data.nodes)) {
+              for (const n of data.nodes as {
+                id: string;
+                name: string;
+                type: MapNodeType;
+                d: boolean;
+              }[]) {
+                const existIdx = nodes.findIndex((x) => x.id === n.id);
+                if (existIdx >= 0) {
+                  // Update existing
+                  nodes[existIdx] = {
+                    ...nodes[existIdx],
+                    name: n.name,
+                    type: n.type ?? nodes[existIdx].type,
+                    discovered: n.d ?? nodes[existIdx].discovered,
+                  };
+                } else {
+                  // Place new node: find a connected node for positioning
+                  let x = (Math.random() - 0.5) * 200;
+                  let y = (Math.random() - 0.5) * 200;
+                  const linkedEdge = edges.find(
+                    ([a, b]) => a === n.id || b === n.id,
+                  );
+                  if (linkedEdge) {
+                    const otherId =
+                      linkedEdge[0] === n.id ? linkedEdge[1] : linkedEdge[0];
+                    const other = nodes.find((nn) => nn.id === otherId);
+                    if (other) {
+                      const angle = Math.random() * Math.PI * 2;
+                      x = other.x + Math.cos(angle) * 130;
+                      y = other.y + Math.sin(angle) * 130;
+                    }
+                  } else if (cur && nodes.length > 0) {
+                    const parent =
+                      nodes.find((nn) => nn.id === cur) ?? nodes[0];
+                    const angle = Math.random() * Math.PI * 2;
+                    x = parent.x + Math.cos(angle) * 130;
+                    y = parent.y + Math.sin(angle) * 130;
+                  }
+                  nodes.push({
+                    id: n.id,
+                    name: n.name,
+                    type: n.type,
+                    discovered: n.d ?? false,
+                    x,
+                    y,
+                  });
+                }
+              }
+            }
+
+            // Add edges (avoid duplicates)
+            if (Array.isArray(data.edges)) {
+              for (const [a, b] of data.edges as [string, string][]) {
+                const already = edges.some(
+                  ([ea, eb]) =>
+                    (ea === a && eb === b) || (ea === b && eb === a),
+                );
+                if (!already) edges.push([a, b]);
+              }
+            }
+
+            return { current: cur, nodes, edges };
+          });
+        } catch {
+          // ignore malformed JSON
+        }
+      } // end while
+    } // end MAP block
+
     // ITEM add/remove
     const itemAddPattern = /\[ITEM:\s*\+([^\]]+)\]/g;
     while ((match = itemAddPattern.exec(rawText)) !== null) {
       const itemName = match[1].trim();
-      setInventory((prev) =>
-        prev.length < bagCapacity ? [...prev, itemName] : prev,
-      );
+      setInventory((prev) => {
+        if (prev.length >= BAG_CAPACITY) return prev;
+        const idx = prev.findIndex(
+          (i) => i.name.toLowerCase() === itemName.toLowerCase(),
+        );
+        if (idx !== -1) {
+          const next = [...prev];
+          next[idx] = { ...next[idx], qty: next[idx].qty + 1 };
+          return next;
+        }
+        return [...prev, { name: itemName, qty: 1 }];
+      });
     }
     const itemRemovePattern = /\[ITEM:\s*-([^\]]+)\]/g;
     while ((match = itemRemovePattern.exec(rawText)) !== null) {
       const itemName = match[1].trim();
       setInventory((prev) => {
         const idx = prev.findIndex(
-          (i) => i.toLowerCase() === itemName.toLowerCase(),
+          (i) => i.name.toLowerCase() === itemName.toLowerCase(),
         );
         if (idx === -1) return prev;
-        return [...prev.slice(0, idx), ...prev.slice(idx + 1)];
+        const next = [...prev];
+        if (next[idx].qty > 1) {
+          next[idx] = { ...next[idx], qty: next[idx].qty - 1 };
+          return next;
+        }
+        return [...next.slice(0, idx), ...next.slice(idx + 1)];
       });
-    }
-
-    // BAG capacity
-    const bagPattern = /\[BAG:\s*(\d+)\]/g;
-    if ((match = bagPattern.exec(rawText)) !== null) {
-      setBagCapacity(parseInt(match[1]));
     }
 
     // SPELL slot used
@@ -6535,13 +6138,18 @@ ${buildCampaign(char.world, char.name, cls?.name || "", race?.name || "")}${stor
       const qty = match[2] ? parseInt(match[2]) : 1;
       setSpellSlots((prev: SpellSlotsState) => {
         if (!prev) return prev;
-        if (slotKey === "pact" && (prev as any).pact) {
+        const isPactSystem = !!(prev as any).pact;
+        if (slotKey === "pact" && isPactSystem) {
           const p = (prev as any).pact;
+          if (p.used >= p.total) return prev; // slot หมดแล้ว ไม่ลดอีก
           return {
             ...prev,
             pact: { ...p, used: Math.min(p.total, p.used + qty) },
           };
         }
+        // ถ้า character ใช้ pact system ห้ามลด regular slot ด้วย [SPELL: N]
+        // (Gemini อาจส่ง [SPELL: 1] แทน [SPELL: pact] ผิดๆ)
+        if (isPactSystem) return prev;
         if (prev[slotKey]) {
           return {
             ...prev,
@@ -6631,6 +6239,8 @@ ${buildCampaign(char.world, char.name, cls?.name || "", race?.name || "")}${stor
     );
 
     const cleanText = rawText
+      .replace(/<<DICE>>[\s\S]*?<<\/DICE>>/g, "")
+      .replace(/\[ระบบ[^\n]*/g, "")
       .replace(/\[ROLL:[^\]]+\]/g, "")
       .replace(/\[HP:[^\]]+\]/g, "")
       .replace(/\[XP:[^\]]+\]/g, "")
@@ -6644,7 +6254,43 @@ ${buildCampaign(char.world, char.name, cls?.name || "", race?.name || "")}${stor
       .replace(/\[SHORT_REST\]/gi, "")
       .replace(/\[SEARCH_FAIL:[^\]]+\]/gi, "")
       .trim();
-    return { cleanText, rollRequests, hpChange, newBeats };
+    // strip [MAP: {...}] tags using brace-counting (regex can't handle nested {})
+    const stripMapTags = (text: string): string => {
+      let result = "";
+      let i = 0;
+      while (i < text.length) {
+        const tagIdx = text.indexOf("[MAP:", i);
+        if (tagIdx === -1) {
+          result += text.slice(i);
+          break;
+        }
+        result += text.slice(i, tagIdx);
+        const braceIdx = text.indexOf("{", tagIdx);
+        if (braceIdx === -1) {
+          result += text.slice(tagIdx);
+          break;
+        }
+        let depth = 0,
+          j = braceIdx;
+        for (; j < text.length; j++) {
+          if (text[j] === "{") depth++;
+          else if (text[j] === "}") {
+            depth--;
+            if (depth === 0) break;
+          }
+        }
+        // skip past closing }]
+        i = j + 1;
+        if (text[i] === "]") i++;
+      }
+      return result;
+    };
+    return {
+      cleanText: stripMapTags(cleanText),
+      rollRequests,
+      hpChange,
+      newBeats,
+    };
   }
 
   function checkSession(turn: number) {
@@ -6653,7 +6299,7 @@ ${buildCampaign(char.world, char.name, cls?.name || "", race?.name || "")}${stor
 
   async function startGame() {
     setLoading(true);
-    const firstUserMsg = `เริ่มการผจญภัย Session 1 — เปิดฉากในโลก '${char.world}' วางรากฐาน Antagonist และ mystery ไว้ตั้งแต่ต้น`;
+    const firstUserMsg = `เริ่มการผจญภัย Session 1 — เปิดฉากในโลก '${char.world}' วางรากฐาน Antagonist และ mystery ไว้ตั้งแต่ต้น ในคำตอบนี้ต้องใส่ [MAP: {...}] สำหรับสถานที่เริ่มต้นของผู้เล่นด้วยเสมอ (ตั้ง d:true เพราะผู้เล่นอยู่ที่นั่นแล้ว)`;
     try {
       // เพิ่ม user message แรกเข้า convRef (Anthropic format)
       convRef.current = [{ role: "user", content: firstUserMsg }];
@@ -6732,21 +6378,32 @@ ${buildCampaign(char.world, char.name, cls?.name || "", race?.name || "")}${stor
     // สรุปเรื่องราวทุก 20 turn เพื่อไม่ให้ AI ลืม context เก่า
     if (newTurn % 20 === 0) await summarizeStory();
     // เพิ่ม user message ใน convRef (Anthropic format)
-    convRef.current.push({ role: "user", content: userText + rag });
+    convRef.current.push({
+      role: "user",
+      content: userText + rag + buildStatusSnapshot(hpRef.current),
+    });
     try {
       const raw = await callGemini(
         buildSys(hpRef.current),
         toGeminiMessages(convRef.current.slice(-40)),
       );
-      const { cleanText, rollRequests, hpChange, newBeats } =
-        parseResponse(raw);
-      const rolls = performRolls(rollRequests);
+      // Extract roll requests only — ไม่ parse side effects จาก call แรก
+      // เพราะถ้ามี rolls จะมี call ที่สองและ parseResponse ที่สองเป็นตัวจริง
+      const rollOnlyMatches: { label: string; notation: string }[] = [];
+      const rollPatternCheck = /\[ROLL:\s*([^|]+)\|([^\]]+)\]/g;
+      let rollMatch: RegExpExecArray | null;
+      while ((rollMatch = rollPatternCheck.exec(raw)) !== null) {
+        rollOnlyMatches.push({
+          label: rollMatch[1].trim(),
+          notation: rollMatch[2].trim(),
+        });
+      }
+      const rolls = performRolls(rollOnlyMatches);
 
       if (rolls.length > 0) {
         // Two-step: ส่งผลโรลกลับให้ DM แล้วรอ response ที่บรรยายผลจริง
-        // เก็บแค่ roll request เท่านั้น (ไม่เก็บ narrative/ตัวเลือกจาก call แรก
-        // เพื่อไม่ให้ AI เห็นตัวเลือกค้างและถามซ้ำในรอบต่อไป)
-        const rollOnlyContent = rollRequests
+        // call แรกเป็นแค่ขอให้โรล — ไม่ parse side effects เพราะยังไม่ได้บรรยายผล
+        const rollOnlyContent = rollOnlyMatches
           .map((r) => `[ROLL: ${r.label}|${r.notation}]`)
           .join("\n");
         convRef.current.push({ role: "assistant", content: rollOnlyContent });
@@ -6757,7 +6414,7 @@ ${buildCampaign(char.world, char.name, cls?.name || "", race?.name || "")}${stor
           .join(", ");
         convRef.current.push({
           role: "user",
-          content: `[ระบบ — ผลลูกเต๋า] ${rollResultMsg}\nบรรยายผลที่เกิดขึ้นจากตัวเลขนี้ทันที ห้ามทวนซ้ำตัวเลขหรือ "ผลโรล" ในคำตอบ หากผู้เล่นรับดาเมจจากผลนี้ ต้องใส่ [HP: -N] ในคำตอบด้วยเสมอ`,
+          content: `<<DICE>> ${rollResultMsg} <</DICE>>`,
         });
 
         const raw2 = await callGemini(
@@ -6790,6 +6447,8 @@ ${buildCampaign(char.world, char.name, cls?.name || "", race?.name || "")}${stor
           },
         ]);
       } else {
+        // No rolls — raw is the final response, parse all side effects now
+        const { cleanText, hpChange, newBeats } = parseResponse(raw);
         if (hpChange !== 0) {
           setHp((h: number) => {
             const n = Math.max(0, Math.min(maxHp, h + hpChange));
@@ -6928,6 +6587,37 @@ ${buildCampaign(char.world, char.name, cls?.name || "", race?.name || "")}${stor
             </span>
           )}
           <button
+            onClick={() => setShowMap(true)}
+            style={{
+              padding: "4px 12px",
+              background: showMap ? "rgba(218,165,32,0.1)" : "none",
+              border: `1px solid ${S.dimGold}`,
+              borderRadius: 3,
+              color: S.darkGold,
+              fontFamily: S.font,
+              fontSize: "0.72rem",
+              cursor: "pointer",
+              position: "relative",
+            }}
+            title="เปิดแผนที่"
+          >
+            🗺 Map
+            {worldMap.current && (
+              <span
+                style={{
+                  position: "absolute",
+                  top: -4,
+                  right: -4,
+                  width: 8,
+                  height: 8,
+                  borderRadius: "50%",
+                  background: "#DAA520",
+                  border: "1px solid #0d0c0a",
+                }}
+              />
+            )}
+          </button>
+          <button
             onClick={() => setShowSaveLoad(true)}
             style={{
               padding: "4px 12px",
@@ -6977,6 +6667,7 @@ ${buildCampaign(char.world, char.name, cls?.name || "", race?.name || "")}${stor
           </button>
         </div>
       </div>
+      {showMap && <MapModal map={worldMap} onClose={() => setShowMap(false)} />}
       {showSaveLoad && (
         <SaveLoadModal
           charName={char.name}
@@ -6998,6 +6689,7 @@ ${buildCampaign(char.world, char.name, cls?.name || "", race?.name || "")}${stor
           cantrips={localCantrips}
           knownSpells={knownSpells}
           invocations={invocations}
+          mysticArcanum={mysticArcanum}
           onConfirm={({
             newSpells,
             swapRemove,
@@ -7007,6 +6699,7 @@ ${buildCampaign(char.world, char.name, cls?.name || "", race?.name || "")}${stor
             newInvocations,
             swapInvocationRemove,
             swapInvocationAdd,
+            newArcanum,
           }) => {
             if (pendingLevelUp.hpGain > 0) {
               setBonusMaxHp((b) => b + pendingLevelUp.hpGain);
@@ -7063,9 +6756,33 @@ ${buildCampaign(char.world, char.name, cls?.name || "", race?.name || "")}${stor
                 });
               }
             }
+            const arcanumUpdate = newArcanum
+              ? { ...mysticArcanum, [newArcanum.level]: newArcanum.spell }
+              : mysticArcanum;
+            if (newArcanum) setMysticArcanum(arcanumUpdate);
             setClassFeatures((prev) => {
               const newFeats = initFeatures(pendingLevelUp.newLevel);
               return newFeats.map((f) => {
+                const arcanumMatch = f.name.match(/Mystic Arcanum \((\d+)th\)/);
+                if (arcanumMatch) {
+                  const lvl = parseInt(arcanumMatch[1]);
+                  const spell = arcanumUpdate[lvl];
+                  const old = prev.find(
+                    (p) =>
+                      p.name === f.name ||
+                      (spell && p.name === `Mystic Arcanum: ${spell}`),
+                  );
+                  return old
+                    ? {
+                        ...f,
+                        name: spell ? `Mystic Arcanum: ${spell}` : f.name,
+                        used: old.used,
+                      }
+                    : {
+                        ...f,
+                        name: spell ? `Mystic Arcanum: ${spell}` : f.name,
+                      };
+                }
                 const old = prev.find((p) => p.name === f.name);
                 return old ? { ...f, used: old.used } : f;
               });
@@ -7690,7 +7407,7 @@ ${buildCampaign(char.world, char.name, cls?.name || "", race?.name || "")}${stor
                 marginBottom: 6,
               }}
             >
-              🎒 INVENTORY ({inventory.length}/{bagCapacity})
+              🎒 INVENTORY ({inventory.length}/{BAG_CAPACITY})
             </div>
             {inventory.length === 0 ? (
               <div
@@ -7716,7 +7433,7 @@ ${buildCampaign(char.world, char.name, cls?.name || "", race?.name || "")}${stor
                       fontSize: "0.68rem",
                     }}
                   >
-                    {item}
+                    {item.qty > 1 ? `${item.name} ×${item.qty}` : item.name}
                   </span>
                 ))}
               </div>
