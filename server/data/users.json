@@ -1,0 +1,20 @@
+[
+  {
+    "id": 1773335679236,
+    "username": "test",
+    "passwordHash": "$2a$10$ve2YrH0TehgaBIJ2crXQZ.KoSWr1KPgFf.j3PEi8mNT0d.Wlhf3Ny",
+    "createdAt": 1773335679236
+  },
+  {
+    "id": 1773336338393,
+    "username": "copter",
+    "passwordHash": "$2a$10$Fno2jaNHt1RG57gdhANxqOjajbeG/r7bgm3/o72swt1ykdcEsfn2i",
+    "createdAt": 1773336338393
+  },
+  {
+    "id": 1773384431580,
+    "username": "tester",
+    "passwordHash": "$2a$10$tsqZTKPnj6NQDwB4m1PilOexZ4hiTHsnPoN7l6gifM6m7KvjoTct6",
+    "createdAt": 1773384431580
+  }
+]
