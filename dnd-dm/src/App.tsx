@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { io, Socket } from "socket.io-client";
 import {
   CLASSES,
   WARLOCK_SUBCLASS_SPELLS,
@@ -1363,7 +1364,7 @@ const WORLD_PRESETS = [
   "Modern city supernatural",
 ];
 
-function StepAppearance({ char, setChar, next, back }: any) {
+function StepAppearance({ char, setChar, next, back, hideWorld }: any) {
   const [name, setName] = useState(char.name || "");
   const [age, setAge] = useState(char.age || "");
   const [appearance, setAppearance] = useState(char.appearance || "");
@@ -1474,53 +1475,48 @@ function StepAppearance({ char, setChar, next, back }: any) {
         />
       </div>
 
-      <div style={{ marginBottom: 20 }}>
-        <Label>
-          WORLD SETTING{" "}
-          <span style={{ opacity: 0.55, fontWeight: "normal" }}>
-            (โลกของการผจญภัย)
-          </span>
-        </Label>
-        <p style={{ color: S.dim, fontSize: "0.72rem", marginBottom: 8 }}>
-          Any setting — fantasy, wuxia, horror, sci-fi, modern life, anything.{" "}
-          <span style={{ opacity: 0.7 }}>(ใส่ได้ทุกแบบ)</span>
-        </p>
-        <div
-          style={{
-            display: "flex",
-            flexWrap: "wrap",
-            gap: 6,
-            marginBottom: 10,
-          }}
-        >
-          {WORLD_PRESETS.map((p) => (
-            <button
-              key={p}
-              onClick={() => setWorld(p)}
-              style={{
-                padding: "4px 10px",
-                borderRadius: 20,
-                cursor: "pointer",
-                fontFamily: S.font,
-                fontSize: "0.72rem",
-                background: world === p ? "rgba(218,165,32,0.15)" : "#0a0500",
-                border: `1px solid ${world === p ? S.gold : S.border}`,
-                color: world === p ? S.gold : S.dimGold,
-                transition: "all 0.15s",
-              }}
-            >
-              {p}
-            </button>
-          ))}
+      {!hideWorld && (
+        <div style={{ marginBottom: 20 }}>
+          <Label>
+            WORLD SETTING{" "}
+            <span style={{ opacity: 0.55, fontWeight: "normal" }}>
+              (โลกของการผจญภัย)
+            </span>
+          </Label>
+          <p style={{ color: S.dim, fontSize: "0.72rem", marginBottom: 8 }}>
+            Any setting — fantasy, wuxia, horror, sci-fi, modern life, anything.{" "}
+            <span style={{ opacity: 0.7 }}>(ใส่ได้ทุกแบบ)</span>
+          </p>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
+            {WORLD_PRESETS.map((p) => (
+              <button
+                key={p}
+                onClick={() => setWorld(p)}
+                style={{
+                  padding: "4px 10px",
+                  borderRadius: 20,
+                  cursor: "pointer",
+                  fontFamily: S.font,
+                  fontSize: "0.72rem",
+                  background: world === p ? "rgba(218,165,32,0.15)" : "#0a0500",
+                  border: `1px solid ${world === p ? S.gold : S.border}`,
+                  color: world === p ? S.gold : S.dimGold,
+                  transition: "all 0.15s",
+                }}
+              >
+                {p}
+              </button>
+            ))}
+          </div>
+          <textarea
+            value={world}
+            onChange={(e) => setWorld(e.target.value)}
+            placeholder="หรือพิมพ์เองได้เลย เช่น 'โลกอนาคต มนุษย์ต่อสู้กับ AI'..."
+            rows={2}
+            style={{ ...inp, resize: "none", lineHeight: 1.5 }}
+          />
         </div>
-        <textarea
-          value={world}
-          onChange={(e) => setWorld(e.target.value)}
-          placeholder="หรือพิมพ์เองได้เลย เช่น 'โลกอนาคต มนุษย์ต่อสู้กับ AI'..."
-          rows={2}
-          style={{ ...inp, resize: "none", lineHeight: 1.5 }}
-        />
-      </div>
+      )}
 
       <div style={{ display: "flex", justifyContent: "space-between" }}>
         <BackBtn onClick={back} />
@@ -1536,7 +1532,7 @@ function StepAppearance({ char, setChar, next, back }: any) {
             }));
             next();
           }}
-          disabled={!name || !world.trim()}
+          disabled={!name || (!hideWorld && !world.trim())}
         >
           ถัดไป →
         </GoldBtn>
@@ -3689,7 +3685,7 @@ function StepSummary({ char, onStart, back }: any) {
 }
 
 // ---- CHARACTER CREATOR SHELL ----
-function CharacterCreator({ onDone }: { onDone: (char: any) => void }) {
+function CharacterCreator({ onDone, hideWorld }: { onDone: (char: any) => void; hideWorld?: boolean }) {
   const [step, setStep] = useState(0);
   const [char, setChar] = useState<Record<string, any>>({});
 
@@ -3736,6 +3732,7 @@ function CharacterCreator({ onDone }: { onDone: (char: any) => void }) {
       setChar={setChar}
       next={() => goNext(5)}
       back={() => setStep(4)}
+      hideWorld={hideWorld}
     />,
     isSpellcaster ? (
       <StepSpells
@@ -5994,7 +5991,8 @@ ${buildCampaign(char.world, char.name, cls?.name || "", race?.name || "")}${stor
     }
 
     // HP
-    const hpPattern = /\[HP:\s*([+-]\d+)\]/g;
+    // Matches [HP: +/-N] or [HP: +/-N extra text] or [HP: Name +/-N ...]
+    const hpPattern = /\[HP:[^\]]*?([+-]\d+)[^\]]*\]/g;
     let hpChange = 0;
     while ((match = hpPattern.exec(rawText)) !== null) {
       hpChange += parseInt(match[1]);
@@ -8049,22 +8047,49 @@ function StartMenuScreen({
   token,
   onNewGame,
   onLoadGame,
+  onMultiplayerCreate,
+  onMultiplayerJoin,
 }: {
   token: string;
   onNewGame: () => void;
   onLoadGame: (char: any, resumeData: any) => void;
+  onMultiplayerCreate: () => void;
+  onMultiplayerJoin: (code: string) => void;
 }) {
   const [saves, setSaves] = useState<
     { id: string; name: string; savedAt: number; charName: string }[]
   >([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [joinInput, setJoinInput] = useState("");
+  const [showJoin, setShowJoin] = useState(false);
+  const [joinError, setJoinError] = useState("");
+  const [joinChecking, setJoinChecking] = useState(false);
 
   useEffect(() => {
     apiListSaves(token)
       .then((list) => setSaves(list.sort((a, b) => b.savedAt - a.savedAt)))
       .catch(() => {});
   }, [token]);
+
+  async function handleJoin() {
+    const code = joinInput.trim().toUpperCase();
+    if (!code) return;
+    setJoinError("");
+    setJoinChecking(true);
+    try {
+      const res = await fetch(`${API_URL}/api/room/${code}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!res.ok) { setJoinError(data.error || "ไม่พบห้องนี้"); return; }
+      onMultiplayerJoin(code);
+    } catch {
+      setJoinError("เชื่อมต่อเซิร์ฟเวอร์ไม่ได้");
+    } finally {
+      setJoinChecking(false);
+    }
+  }
 
   async function handleLoad(id: string) {
     setLoading(true);
@@ -8128,15 +8153,53 @@ function StartMenuScreen({
         {/* New Game */}
         <GoldBtn
           onClick={onNewGame}
-          style={{
-            width: "100%",
-            padding: "14px",
-            fontSize: "1rem",
-            marginBottom: 20,
-          }}
+          style={{ width: "100%", padding: "14px", fontSize: "1rem", marginBottom: 10 }}
         >
-          📜 เริ่มการผจญภัยใหม่
+          📜 เริ่มการผจญภัยใหม่ (คนเดียว)
         </GoldBtn>
+
+        {/* Multiplayer */}
+        <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+          <GoldBtn
+            onClick={onMultiplayerCreate}
+            style={{ flex: 1, padding: "11px", fontSize: "0.85rem" }}
+          >
+            👥 สร้างห้อง MP
+          </GoldBtn>
+          <div style={{ flex: 1 }}>
+            {showJoin ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <input
+                    value={joinInput}
+                    onChange={(e) => { setJoinInput(e.target.value.toUpperCase()); setJoinError(""); }}
+                    onKeyDown={(e) => e.key === "Enter" && handleJoin()}
+                    placeholder="รหัสห้อง"
+                    maxLength={8}
+                    disabled={joinChecking}
+                    style={{ flex: 1, padding: "10px 10px", background: S.bg, border: `1px solid ${joinError ? "#c0392b" : S.border}`, borderRadius: 3, color: S.text, fontFamily: S.font, fontSize: "0.85rem", outline: "none", letterSpacing: "0.1em" }}
+                    autoFocus
+                  />
+                  <GoldBtn onClick={handleJoin} disabled={joinChecking || !joinInput.trim()} style={{ padding: "10px 12px" }}>
+                    {joinChecking ? "..." : "→"}
+                  </GoldBtn>
+                </div>
+                {joinError && (
+                  <div style={{ color: "#c0392b", fontSize: "0.75rem", paddingLeft: 2 }}>
+                    ⚠ {joinError}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <GoldBtn
+                onClick={() => setShowJoin(true)}
+                style={{ width: "100%", padding: "11px", fontSize: "0.85rem" }}
+              >
+                🔑 เข้าห้อง MP
+              </GoldBtn>
+            )}
+          </div>
+        </div>
 
         {/* Save List */}
         <div
@@ -8421,6 +8484,605 @@ function LoginScreen({
 }
 
 // ---- ROOT ----
+// ---- MULTIPLAYER TYPES ----
+type MpPlayer = {
+  userId: number; username: string; charName: string;
+  race: string; cls: string; hp: number; maxHp: number; level: number; isMe?: boolean;
+};
+type MpMessage = {
+  type: "player" | "dm" | "system" | "dice";
+  userId?: number; username?: string; charName?: string;
+  text?: string; rolls?: any[];
+};
+
+// ---- MULTIPLAYER LOBBY SCREEN ----
+function MultiplayerLobbyScreen({
+  socket, char, token, mode, joinCode, myUserId,
+  onGameStart, onBack,
+}: {
+  socket: Socket; char: any; token: string; mode: "create" | "join";
+  joinCode: string; myUserId: number;
+  onGameStart: (roomCode: string, players: MpPlayer[]) => void;
+  onBack: () => void;
+}) {
+  const [status, setStatus] = useState("กำลังเชื่อมต่อ...");
+  const [roomCode, setRoomCode] = useState("");
+  const [players, setPlayers] = useState<MpPlayer[]>([]);
+  const [isHost, setIsHost] = useState(false);
+  const [error, setError] = useState("");
+  const playersRef = useRef<MpPlayer[]>([]);
+  const roomCodeRef = useRef("");
+
+  useEffect(() => {
+    function doSetup() {
+      socket.emit("mp_auth", { token }, (res: any) => {
+        if (res.error) { setError(res.error); return; }
+        if (mode === "create") {
+          socket.emit("mp_create", { char, world: char.world }, (res2: any) => {
+            if (res2.error) { setError(res2.error); return; }
+            roomCodeRef.current = res2.code;
+            setRoomCode(res2.code);
+            setPlayers(res2.room.players);
+            playersRef.current = res2.room.players;
+            setIsHost(true);
+            setStatus("รอผู้เล่นอื่น... แชร์รหัสนี้ให้เพื่อน");
+          });
+        } else {
+          socket.emit("mp_join", { code: joinCode, char }, (res2: any) => {
+            if (res2.error) { setError(res2.error); return; }
+            roomCodeRef.current = joinCode;
+            setRoomCode(joinCode);
+            setPlayers(res2.room.players);
+            playersRef.current = res2.room.players;
+            if (res2.room.gameState === "playing") {
+              onGameStart(joinCode, res2.room.players);
+            } else {
+              setStatus("รอ host เริ่มเกม...");
+            }
+          });
+        }
+      });
+    }
+
+    if (socket.connected) doSetup();
+    else socket.once("connect", doSetup);
+
+    const onJoined = (p: MpPlayer) => {
+      setPlayers((prev) => { const next = [...prev, p]; playersRef.current = next; return next; });
+    };
+    const onLeft = ({ userId }: { userId: number }) => {
+      setPlayers((prev) => { const next = prev.filter(p => p.userId !== userId); playersRef.current = next; return next; });
+    };
+    const onStarted = () => {
+      onGameStart(roomCodeRef.current, playersRef.current);
+    };
+    const onConnErr = () => setError("ไม่สามารถเชื่อมต่อ server ได้");
+
+    socket.on("mp_player_joined", onJoined);
+    socket.on("mp_player_left", onLeft);
+    socket.on("mp_game_started", onStarted);
+    socket.on("connect_error", onConnErr);
+
+    return () => {
+      socket.off("mp_player_joined", onJoined);
+      socket.off("mp_player_left", onLeft);
+      socket.off("mp_game_started", onStarted);
+      socket.off("connect_error", onConnErr);
+    };
+  }, []);
+
+  return (
+    <div style={{ minHeight: "100vh", background: S.bg, fontFamily: S.font, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ width: "100%", maxWidth: 480, padding: "0 16px" }}>
+        <div style={{ textAlign: "center", marginBottom: 28 }}>
+          <div style={{ fontSize: "2rem", marginBottom: 8 }}>👥</div>
+          <h2 style={{ color: S.gold, fontWeight: "normal", fontSize: "1.3rem", letterSpacing: "0.1em", margin: 0 }}>
+            ห้องผจญภัย
+          </h2>
+        </div>
+
+        {error && (
+          <div style={{ background: "rgba(192,57,43,0.15)", border: "1px solid #c0392b", borderRadius: 4, padding: "10px 14px", color: "#e74c3c", fontSize: "0.82rem", marginBottom: 16 }}>
+            {error}
+          </div>
+        )}
+
+        {/* Room Code */}
+        {roomCode && (
+          <div style={{ background: "#0d0700", border: `1px solid ${S.border}`, borderRadius: 8, padding: "18px", marginBottom: 16, textAlign: "center" }}>
+            <div style={{ color: S.muted, fontSize: "0.65rem", letterSpacing: "0.1em", marginBottom: 8 }}>รหัสห้อง</div>
+            <div style={{ color: S.gold, fontSize: "2rem", fontWeight: "bold", letterSpacing: "0.3em" }}>{roomCode}</div>
+            <div style={{ color: S.dim, fontSize: "0.7rem", marginTop: 6 }}>{status}</div>
+          </div>
+        )}
+
+        {/* Player List */}
+        <div style={{ background: "#0d0700", border: `1px solid ${S.border}`, borderRadius: 8, padding: "18px", marginBottom: 20 }}>
+          <div style={{ color: S.muted, fontSize: "0.65rem", letterSpacing: "0.1em", marginBottom: 12 }}>
+            ผู้เล่น ({players.length}/4)
+          </div>
+          {players.map((p, i) => (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: i < players.length - 1 ? `1px solid ${S.border}` : "none" }}>
+              <div style={{ width: 32, height: 32, borderRadius: "50%", background: p.isMe ? "rgba(218,165,32,0.2)" : "rgba(255,255,255,0.05)", border: `1px solid ${p.isMe ? S.darkGold : S.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1rem" }}>
+                ⚔
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ color: p.isMe ? S.gold : S.text, fontSize: "0.88rem" }}>
+                  {p.charName} {p.isMe && <span style={{ color: S.muted, fontSize: "0.7rem" }}>(คุณ)</span>}
+                </div>
+                <div style={{ color: S.dim, fontSize: "0.68rem" }}>
+                  {p.race} {p.cls} · {p.username}
+                </div>
+              </div>
+              {p.userId === (players.find(x => x.isMe) ? players[0]?.userId : -1) && (
+                <div style={{ color: S.darkGold, fontSize: "0.65rem" }}>HOST</div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Start button (host only) */}
+        {isHost && (
+          <GoldBtn
+            onClick={() => socket.emit("mp_start", () => {})}
+            disabled={players.length < 1}
+            style={{ width: "100%", padding: "13px", fontSize: "0.95rem", marginBottom: 12 }}
+          >
+            ⚔ เริ่มการผจญภัย ({players.length} คน)
+          </GoldBtn>
+        )}
+
+        <button
+          onClick={() => { socket.disconnect(); onBack(); }}
+          style={{ width: "100%", padding: "10px", background: "none", border: `1px solid ${S.border}`, borderRadius: 4, color: S.muted, fontFamily: S.font, fontSize: "0.8rem", cursor: "pointer" }}
+        >
+          ← ออก
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ---- MULTIPLAYER GAME SCREEN ----
+function MultiplayerGameScreen({
+  socket, roomCode, initialPlayers, myUserId, char, onLeave,
+}: {
+  socket: Socket; roomCode: string; initialPlayers: MpPlayer[];
+  myUserId: number; char: any; onLeave: () => void;
+}) {
+  const [players, setPlayers] = useState<MpPlayer[]>(initialPlayers);
+  const [messages, setMessages] = useState<MpMessage[]>([{
+    type: "system", text: "⚔ การผจญภัยเริ่มขึ้นแล้ว..."
+  }]);
+  const [input, setInput] = useState("");
+  const [dmTyping, setDmTyping] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [waitingFor, setWaitingFor] = useState<string[]>([]);
+  const [showStats, setShowStats] = useState(false);
+  const [restPending, setRestPending] = useState(false);
+  const [restConfirmed, setRestConfirmed] = useState(0);
+  const [restTotal, setRestTotal] = useState(0);
+  const [restFood, setRestFood] = useState(0); // total food needed for rest
+  const chatRef = useRef<HTMLDivElement>(null);
+  const isMobile = window.innerWidth < 768;
+
+  // Character sheet state (mirrors single-player)
+  const cls = CLASSES.find((c: any) => c.id === char?.cls);
+  const race = RACES.find((r: any) => r.id === char?.race);
+  const bg = BACKGROUNDS.find((b: any) => b.id === char?.background);
+  const spellInfo = SPELL_CLASS_INFO[char?.cls];
+  const hpBase = ({ d6: 6, d8: 8, d10: 10, d12: 12 } as any)[cls?.hitDie || "d8"] || 8;
+  const baseMaxHp = hpBase + getmod(char?.abilities?.CON || 10) + 1;
+
+  const mePlayer = players.find((p) => p.userId === myUserId);
+  const [myHp, setMyHp] = useState(mePlayer?.hp ?? baseMaxHp);
+  const myMaxHp = mePlayer?.maxHp ?? baseMaxHp;
+
+  const [xp, setXp] = useState(0);
+  const [charLevel] = useState(1);
+  const [reputation, setReputation] = useState(0);
+  const [food, setFood] = useState(300);
+  const [inventory, setInventory] = useState<{ name: string; qty: number }[]>([]);
+  const storyBeats = useRef<string[]>([]);
+
+  const initMpSlots = () => char?.spellSlots ? JSON.parse(JSON.stringify(char.spellSlots)) : null;
+  const initMpFeatures = (): ClassFeature[] => {
+    const featFn = CLASS_FEATURES[char?.cls];
+    const base = featFn ? featFn(1).map((f: any) => ({ ...f, used: 0 })) : [];
+    return base;
+  };
+  const [spellSlots, setSpellSlots] = useState<SpellSlotsState>(() => initMpSlots());
+  const [classFeatures, setClassFeatures] = useState<ClassFeature[]>(() => initMpFeatures());
+  const cantrips: string[] = char?.cantrips ?? [];
+  const knownSpells: string[] = char?.knownSpells ?? [];
+  const invocations: string[] = char?.initialInvocations ?? [];
+  const BAG_CAPACITY = 100;
+
+  useEffect(() => {
+    socket.on("mp_player_joined", (p: MpPlayer) => {
+      setPlayers((prev) => [...prev, p]);
+      setMessages((prev) => [...prev, { type: "system", text: `${p.charName} (${p.username}) เข้าร่วมปาร์ตี้` }]);
+    });
+    socket.on("mp_player_left", ({ userId, username }: any) => {
+      setPlayers((prev) => prev.filter((p) => p.userId !== userId));
+      setMessages((prev) => [...prev, { type: "system", text: `${username} ออกจากปาร์ตี้` }]);
+    });
+    socket.on("mp_player_msg", ({ userId, username, charName, text }: any) => {
+      setMessages((prev) => [...prev, { type: "player", userId, username, charName, text }]);
+    });
+    socket.on("mp_dm_typing", (v: boolean) => setDmTyping(v));
+    socket.on("mp_round_status", ({ waiting }: { submitted: number[]; waiting: string[] }) => {
+      setWaitingFor(waiting);
+    });
+    socket.on("mp_dice", ({ rolls }: any) => {
+      setMessages((prev) => [...prev, { type: "dice", rolls }]);
+    });
+    socket.on("mp_dm_msg", ({ text, rolls, playerStates }: any) => {
+      setMessages((prev) => [...prev, { type: "dm", text, rolls }]);
+      setSubmitted(false);
+      setWaitingFor([]);
+      if (playerStates?.length) {
+        setPlayers((prev) => prev.map((p) => {
+          const s = playerStates.find((x: any) => x.userId === p.userId);
+          return s ? { ...p, hp: s.hp, maxHp: s.maxHp } : p;
+        }));
+        const myState = playerStates.find((x: any) => x.userId === myUserId);
+        if (myState) setMyHp(myState.hp);
+      }
+    });
+    socket.on("mp_err", (msg: string) => {
+      setMessages((prev) => [...prev, { type: "system", text: `⚠️ ${msg}` }]);
+    });
+    socket.on("mp_rest_pending", ({ totalFood }: any) => {
+      setRestPending(true);
+      setRestConfirmed(0);
+      setRestTotal(players.length);
+      setRestFood(totalFood);
+    });
+    socket.on("mp_rest_status", ({ confirmedCount, totalCount, confirmerName }: any) => {
+      setRestConfirmed(confirmedCount);
+      setRestTotal(totalCount);
+      setMessages((prev) => [...prev, { type: "system", text: `✅ ${confirmerName} ยืนยัน Long Rest (${confirmedCount}/${totalCount})` }]);
+    });
+    socket.on("mp_rest_done", ({ deductions, playerStates }: any) => {
+      setRestPending(false);
+      const myDeduction = deductions[myUserId] || 0;
+      setFood((prev) => Math.max(0, prev - myDeduction));
+      const myState = playerStates?.find((x: any) => x.userId === myUserId);
+      if (myState) setMyHp(myState.maxHp);
+      if (playerStates?.length) {
+        setPlayers((prev) => prev.map((p) => {
+          const s = playerStates.find((x: any) => x.userId === p.userId);
+          return s ? { ...p, hp: s.hp, maxHp: s.maxHp } : p;
+        }));
+      }
+      setMessages((prev) => [...prev, { type: "system", text: `🌙 Long Rest สำเร็จ! HP ฟื้นฟูเต็ม — เสียอาหาร ${myDeduction} หน่วย` }]);
+    });
+    socket.on("mp_rest_cancelled", ({ reason }: any) => {
+      setRestPending(false);
+      setMessages((prev) => [...prev, { type: "system", text: `❌ Long Rest ถูกยกเลิก${reason ? ` — ${reason}` : ""}` }]);
+    });
+    return () => {
+      socket.off("mp_player_joined");
+      socket.off("mp_player_left");
+      socket.off("mp_player_msg");
+      socket.off("mp_dm_typing");
+      socket.off("mp_round_status");
+      socket.off("mp_dice");
+      socket.off("mp_dm_msg");
+      socket.off("mp_err");
+      socket.off("mp_rest_pending");
+      socket.off("mp_rest_status");
+      socket.off("mp_rest_done");
+      socket.off("mp_rest_cancelled");
+    };
+  }, [socket]);
+
+  useEffect(() => {
+    chatRef.current?.scrollTo({ top: chatRef.current.scrollHeight, behavior: "smooth" });
+  }, [messages, dmTyping]);
+
+  function sendAction() {
+    if (!input.trim() || submitted) return;
+    if (restPending && input.trim().toLowerCase() === "ยืนยัน") {
+      socket.emit("mp_rest_confirm", { food });
+      setInput("");
+      return;
+    }
+    socket.emit("mp_action", input.trim());
+    setSubmitted(true);
+    setInput("");
+  }
+
+  const hpColor = (hp: number, max: number) => {
+    const pct = hp / max;
+    return pct > 0.5 ? "#2ecc71" : pct > 0.25 ? "#f39c12" : "#e74c3c";
+  };
+
+  return (
+    <div style={{ height: "100vh", background: S.bg, fontFamily: S.font, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      {/* Header — identical to single-player */}
+      <div style={{ padding: "10px 16px", borderBottom: `1px solid ${S.border}`, background: "#0d0700", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ fontSize: "1.2rem" }}>{cls?.icon}</span>
+          <div>
+            <div style={{ color: S.gold, fontSize: isMobile ? "0.85rem" : "0.95rem" }}>{char?.name}</div>
+            {!isMobile && <div style={{ color: S.muted, fontSize: "0.7rem" }}>{race?.name} {cls?.name} · ห้อง {roomCode}</div>}
+          </div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <div style={{ padding: "2px 8px", background: "rgba(218,165,32,0.08)", border: `1px solid ${S.dimGold}`, borderRadius: 3, textAlign: "center" }}>
+            <div style={{ color: S.gold, fontSize: "0.65rem" }}>Multiplayer</div>
+            <div style={{ color: S.muted, fontSize: "0.58rem", opacity: 0.7 }}>🔑 {roomCode}</div>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ color: myHp > myMaxHp * 0.5 ? "#c0392b" : "#e74c3c", fontSize: "0.85rem", fontWeight: "bold" }}>❤️ {myHp}/{myMaxHp}</span>
+            <div style={{ width: 72, height: 6, background: "#1a0800", borderRadius: 3, border: `1px solid ${S.border}` }}>
+              <div style={{ width: `${Math.max(0, (myHp / myMaxHp) * 100)}%`, height: "100%", background: myHp > myMaxHp * 0.5 ? "#c0392b" : "#e74c3c", borderRadius: 3, transition: "width 0.5s" }} />
+            </div>
+          </div>
+          {!isMobile && bg?.name && <span style={{ color: S.dimGold, fontSize: "0.72rem" }}>{bg.name}</span>}
+          {isMobile && (
+            <button onClick={() => setShowStats(true)} style={{ padding: "4px 10px", background: "none", border: `1px solid ${S.dimGold}`, borderRadius: 3, color: S.darkGold, fontFamily: S.font, fontSize: "0.72rem", cursor: "pointer" }}>📊</button>
+          )}
+          <button onClick={() => { socket.disconnect(); onLeave(); }} style={{ padding: "4px 10px", background: "none", border: "1px solid #c0392b", borderRadius: 3, color: "#e74c3c", fontFamily: S.font, fontSize: "0.72rem", cursor: "pointer" }}>🚪 {!isMobile && char?.name}</button>
+        </div>
+      </div>
+
+      {/* Body */}
+      <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
+        {/* LEFT: Chat + Input */}
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, minWidth: 0 }}>
+          <div ref={chatRef} style={{ flex: 1, overflowY: "auto", padding: "18px 16px", display: "flex", flexDirection: "column", gap: 16, minHeight: 0 }}>
+            {messages.map((msg, i) => {
+              if (msg.type === "system") {
+                return <div key={i} style={{ textAlign: "center", color: S.dim, fontSize: "0.72rem", padding: "4px 0" }}>{msg.text}</div>;
+              }
+              if (msg.type === "player") {
+                const isMe = msg.userId === myUserId;
+                const senderCls = CLASSES.find((c: any) => c.id === players.find((p) => p.userId === msg.userId)?.cls);
+                return (
+                  <div key={i} style={{ display: "flex", flexDirection: isMe ? "row-reverse" : "row", gap: 10, alignItems: "flex-start" }}>
+                    <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#1a0d00", border: `1px solid ${S.dimGold}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, flexShrink: 0 }}>
+                      {senderCls?.icon ?? "🧙"}
+                    </div>
+                    <div style={{ maxWidth: "82%", display: "flex", flexDirection: "column", gap: 6, alignItems: isMe ? "flex-end" : "flex-start" }}>
+                      <div style={{ color: S.dimGold, fontSize: "0.62rem" }}>{msg.charName} <span style={{ color: S.dim }}>({msg.username})</span></div>
+                      <div style={{ padding: "10px 14px", background: isMe ? "rgba(92,61,17,0.18)" : "#110900", border: `1px solid ${isMe ? S.dimGold : S.border}`, borderRadius: isMe ? "8px 0 8px 8px" : "0 8px 8px 8px", color: isMe ? S.darkGold : S.text, lineHeight: 1.75, fontSize: "0.88rem", whiteSpace: "pre-wrap" }}>
+                        {msg.text}
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+              if (msg.type === "dm") {
+                return (
+                  <div key={i} style={{ display: "flex", flexDirection: "row", gap: 10, alignItems: "flex-start" }}>
+                    <div style={{ width: 28, height: 28, borderRadius: "50%", background: `linear-gradient(135deg, ${S.darkGold}, ${S.gold})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, flexShrink: 0 }}>🎭</div>
+                    <div style={{ maxWidth: "82%", display: "flex", flexDirection: "column", gap: 6 }}>
+                      <div style={{ padding: "10px 14px", background: "#110900", border: `1px solid ${S.border}`, borderRadius: "0 8px 8px 8px", color: S.text, lineHeight: 1.75, fontSize: "0.88rem", whiteSpace: "pre-wrap" }}>{msg.text}</div>
+                      {msg.rolls && msg.rolls.length > 0 && (
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, paddingLeft: 4 }}>
+                          {msg.rolls.map((r: any, j: number) => {
+                            const passed = r.dc ? r.total >= r.dc : null;
+                            return (
+                              <div key={j} style={{ padding: "3px 10px", background: "#0a0500", border: `1px solid ${passed === true ? "#27ae60" : passed === false ? "#c0392b" : S.border}`, borderRadius: 3, fontSize: "0.75rem" }}>
+                                <span style={{ color: S.dimGold }}>🎲 {r.label}</span>
+                                {r.dc && <span style={{ color: "#aaa", marginLeft: 4 }}>DC:{r.dc}</span>}
+                                <span style={{ color: S.dimGold }}> ({r.notation}): </span>
+                                <span style={{ color: S.muted }}>[{r.rolls.join(", ")}]</span>
+                                <span style={{ color: S.gold, fontWeight: "bold" }}> = {r.total}</span>
+                                {passed !== null && <span style={{ color: passed ? "#2ecc71" : "#e74c3c", marginLeft: 6, fontWeight: "bold" }}>{passed ? "✓" : "✗"}</span>}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              }
+              return null;
+            })}
+            {dmTyping && (
+              <div style={{ display: "flex", gap: 10 }}>
+                <div style={{ width: 28, height: 28, borderRadius: "50%", background: `linear-gradient(135deg, ${S.darkGold}, ${S.gold})`, display: "flex", alignItems: "center", justifyContent: "center" }}>🎭</div>
+                <div style={{ padding: "10px 16px", background: "#110900", border: `1px solid ${S.border}`, borderRadius: "0 8px 8px 8px" }}>
+                  <span style={{ color: S.dimGold, letterSpacing: "0.3em" }}>- - -</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Rest Pending Notice */}
+          {restPending && (
+            <div style={{ padding: "7px 16px", borderTop: `1px solid #5d4e00`, background: "rgba(93,78,0,0.15)", color: S.darkGold, fontSize: "0.72rem" }}>
+              🌙 Long Rest รออยู่ — พิมพ์ <b>"ยืนยัน"</b> เพื่อยืนยัน ({restConfirmed}/{restTotal} คน · ใช้อาหาร {restFood} หน่วย)
+            </div>
+          )}
+
+          {/* Input */}
+          <div style={{ padding: isMobile ? "8px 10px" : "12px 16px", borderTop: `1px solid ${S.border}`, background: "#0d0700", display: "flex", flexDirection: isMobile ? "column" : "row", gap: 8 }}>
+            {submitted && !dmTyping && waitingFor.length > 0 && (
+              <div style={{ color: S.muted, fontSize: "0.72rem", marginBottom: 4, fontStyle: "italic", width: "100%" }}>⏳ รอ: {waitingFor.join(", ")}...</div>
+            )}
+            {isMobile ? (
+              <textarea value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendAction(); } }} placeholder={restPending ? "พิมพ์ 'ยืนยัน' เพื่อยืนยัน Long Rest..." : submitted ? "ส่งการกระทำแล้ว รอผู้เล่นคนอื่น..." : "คุณจะทำอะไร?"} rows={3} disabled={submitted || dmTyping} style={{ flex: 1, padding: "10px 12px", background: S.bg, border: `1px solid ${restPending ? "#5d4e00" : S.border}`, borderRadius: 3, color: submitted ? S.muted : S.text, fontFamily: S.font, fontSize: "0.88rem", outline: "none", resize: "none", opacity: submitted || dmTyping ? 0.6 : 1 }} onFocus={(e) => (e.target.style.borderColor = S.darkGold)} onBlur={(e) => (e.target.style.borderColor = restPending ? "#5d4e00" : S.border)} />
+            ) : (
+              <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && sendAction()} placeholder={restPending ? "พิมพ์ 'ยืนยัน' เพื่อยืนยัน Long Rest..." : submitted ? "ส่งการกระทำแล้ว รอผู้เล่นคนอื่น..." : "คุณจะทำอะไร? (เช่น: ผมโจมตีมัน, ผมมองรอบๆ, ผมร่ายมนตร์ไฟ...)"} disabled={submitted || dmTyping} style={{ flex: 1, padding: "10px 14px", background: S.bg, border: `1px solid ${restPending ? "#5d4e00" : S.border}`, borderRadius: 3, color: submitted ? S.muted : S.text, fontFamily: S.font, fontSize: "0.88rem", outline: "none", opacity: submitted || dmTyping ? 0.6 : 1 }} onFocus={(e) => ((e.target as HTMLInputElement).style.borderColor = S.darkGold)} onBlur={(e) => ((e.target as HTMLInputElement).style.borderColor = restPending ? "#5d4e00" : S.border)} />
+            )}
+            <GoldBtn onClick={sendAction} disabled={!input.trim() || submitted || dmTyping}>กระทำ</GoldBtn>
+          </div>
+        </div>
+
+        {/* RIGHT SIDEBAR — identical to single-player */}
+        {isMobile && showStats && <div onClick={() => setShowStats(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 200 }} />}
+        <div style={{ width: 300, borderLeft: `1px solid ${S.border}`, background: "#0d0700", display: "flex", flexDirection: "column", overflowY: "auto", flexShrink: 0, ...(isMobile ? { position: "fixed", top: 0, right: 0, height: "100dvh", zIndex: 201, transform: showStats ? "translateX(0)" : "translateX(100%)", transition: "transform 0.25s ease" } : {}) }}>
+          {isMobile && (
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", borderBottom: `1px solid ${S.border}`, background: "#110f08" }}>
+              <span style={{ color: S.darkGold, fontSize: "0.72rem", letterSpacing: "0.1em" }}>📊 สถานะ</span>
+              <button onClick={() => setShowStats(false)} style={{ background: "none", border: "none", color: "#888", fontSize: "1.1rem", cursor: "pointer" }}>✕</button>
+            </div>
+          )}
+
+          {/* Ability Scores */}
+          <div style={{ padding: "12px 14px", borderBottom: `1px solid ${S.border}` }}>
+            <div style={{ color: S.gold, fontSize: "0.62rem", letterSpacing: "0.12em", marginBottom: 8 }}>📋 ABILITY SCORES</div>
+            <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 10 }}>
+              {ABILITY_NAMES.map((s) => (
+                <div key={s} style={{ textAlign: "center", padding: "4px 7px", background: "#080400", border: `1px solid ${S.border}`, borderRadius: 3 }}>
+                  <div style={{ color: S.muted, fontSize: "0.55rem" }}>{s}</div>
+                  <div style={{ color: S.text, fontWeight: "bold", fontSize: "0.9rem" }}>{char?.abilities?.[s] || 8}</div>
+                  <div style={{ color: S.dimGold, fontSize: "0.6rem" }}>{modStr(char?.abilities?.[s] || 8)}</div>
+                </div>
+              ))}
+            </div>
+            {(char?.allSkills || []).length > 0 && (
+              <>
+                <div style={{ color: S.muted, fontSize: "0.6rem", letterSpacing: "0.1em", marginBottom: 5 }}>PROFICIENT SKILLS</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 3 }}>
+                  {(char?.allSkills || []).map((sk: string) => (
+                    <span key={sk} style={{ padding: "2px 6px", background: "rgba(218,165,32,0.08)", border: `1px solid ${S.dimGold}`, borderRadius: 20, color: S.darkGold, fontSize: "0.62rem" }}>{sk}</span>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* XP / Level / Rep / Food */}
+          <div style={{ padding: "12px 14px", borderBottom: `1px solid ${S.border}` }}>
+            <div style={{ marginBottom: 8 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
+                <span style={{ color: S.gold, fontSize: "0.68rem" }}>⭐ LV {charLevel}</span>
+                <span style={{ color: S.muted, fontSize: "0.62rem" }}>{xp} / {xpForNextLevel(charLevel)} XP</span>
+              </div>
+              <div style={{ height: 6, background: "#1a0800", borderRadius: 3, overflow: "hidden" }}>
+                <div style={{ height: "100%", width: charLevel >= 20 ? "100%" : `${Math.min(100, ((xp - XP_THRESHOLDS[charLevel - 1]) / (xpForNextLevel(charLevel) - XP_THRESHOLDS[charLevel - 1])) * 100)}%`, background: `linear-gradient(90deg, ${S.darkGold}, ${S.gold})`, transition: "width 0.4s" }} />
+              </div>
+            </div>
+            <div style={{ marginBottom: 8 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
+                <span style={{ color: reputation >= 0 ? "#27ae60" : "#e74c3c", fontSize: "0.68rem" }}>{reputation >= 60 ? "🌟" : reputation >= 20 ? "😊" : reputation >= -20 ? "😐" : reputation >= -60 ? "😠" : "💀"} ชื่อเสียง</span>
+                <span style={{ color: reputation >= 0 ? "#27ae60" : "#e74c3c", fontSize: "0.62rem" }}>{reputation > 0 ? "+" : ""}{reputation}</span>
+              </div>
+              <div style={{ height: 5, background: "#1a0800", borderRadius: 3, overflow: "hidden" }}>
+                <div style={{ height: "100%", width: `${((reputation + 100) / 200) * 100}%`, background: reputation >= 0 ? "#27ae60" : "#e74c3c", transition: "width 0.4s" }} />
+              </div>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <span style={{ color: S.muted, fontSize: "0.68rem" }}>🍖 อาหาร</span>
+              <span style={{ color: food < 80 ? "#e74c3c" : S.text, fontSize: "0.68rem" }}>{food} หน่วย {food < 80 ? "(ไม่พอ Long Rest)" : ""}</span>
+            </div>
+          </div>
+
+          {/* Inventory */}
+          <div style={{ padding: "12px 14px", borderBottom: `1px solid ${S.border}`, maxHeight: 160, overflowY: "auto" }}>
+            <div style={{ color: S.darkGold, fontSize: "0.62rem", letterSpacing: "0.12em", marginBottom: 6 }}>🎒 INVENTORY ({inventory.length}/{BAG_CAPACITY})</div>
+            {inventory.length === 0 ? (
+              <div style={{ color: S.dim, fontSize: "0.72rem", fontStyle: "italic" }}>กระเป๋าว่าง...</div>
+            ) : (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 3 }}>
+                {inventory.map((item, i) => (
+                  <span key={i} style={{ padding: "2px 7px", background: "rgba(218,165,32,0.07)", border: `1px solid ${S.dim}`, borderRadius: 20, color: S.text, fontSize: "0.68rem" }}>
+                    {item.qty > 1 ? `${item.name} ×${item.qty}` : item.name}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Story Memory */}
+          <div style={{ padding: "12px 14px", borderBottom: `1px solid ${S.border}`, overflowY: "auto", maxHeight: 220 }}>
+            <div style={{ color: "#9b59b6", fontSize: "0.62rem", letterSpacing: "0.12em", marginBottom: 8 }}>📖 STORY MEMORY</div>
+            {storyBeats.current.length === 0 ? (
+              <div style={{ color: S.dim, fontSize: "0.75rem", fontStyle: "italic" }}>ยังไม่มีเหตุการณ์สำคัญที่บันทึกไว้...</div>
+            ) : storyBeats.current.map((m, i) => (
+              <div key={i} style={{ display: "flex", gap: 8, marginBottom: 5, alignItems: "flex-start" }}>
+                <span style={{ color: "#9b59b6", fontSize: "0.65rem", flexShrink: 0, marginTop: 1 }}>#{i + 1}</span>
+                <span style={{ color: S.text, fontSize: "0.75rem", lineHeight: 1.5 }}>{m}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Resources */}
+          <div style={{ padding: "12px 14px", overflowY: "auto", flex: 1 }}>
+            <div style={{ color: "#3498db", fontSize: "0.62rem", letterSpacing: "0.12em", marginBottom: 8 }}>⚡ RESOURCES</div>
+            {spellSlots && (
+              <div style={{ marginBottom: 10 }}>
+                <div style={{ color: S.muted, fontSize: "0.68rem", marginBottom: 6 }}>✨ SPELL SLOTS <span style={{ opacity: 0.6 }}>(สล็อตเวทย์)</span></div>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  {(spellSlots as any).pact ? (
+                    <div style={{ background: "#0a0820", border: "1px solid #3498db", borderRadius: 4, padding: "6px 10px" }}>
+                      <div style={{ color: "#85c1e9", fontSize: "0.68rem", marginBottom: 4 }}>Pact (Lv{(spellSlots as any).pact.level})</div>
+                      <div style={{ display: "flex", gap: 4 }}>
+                        {Array.from({ length: (spellSlots as any).pact.total }, (_, i) => (
+                          <div key={i} style={{ width: 18, height: 18, borderRadius: "50%", background: i < (spellSlots as any).pact.used ? "#1a1a2e" : "#3498db", border: "1px solid #3498db" }} />
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    Object.entries(spellSlots).map(([lvl, s]) => (s as any).total > 0 && (
+                      <div key={lvl} style={{ background: "#080a10", border: "1px solid #2471a3", borderRadius: 4, padding: "6px 10px" }}>
+                        <div style={{ color: "#85c1e9", fontSize: "0.65rem", marginBottom: 4 }}>{["1st","2nd","3rd","4th","5th"][Number(lvl)-1]}</div>
+                        <div style={{ display: "flex", gap: 3 }}>
+                          {Array.from({ length: (s as any).total }, (_, i) => (
+                            <div key={i} style={{ width: 16, height: 16, borderRadius: "50%", background: i < (s as any).used ? "#111" : "#2471a3", border: "1px solid #2471a3" }} />
+                          ))}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+            {cantrips.length > 0 && (
+              <div style={{ marginBottom: 8 }}>
+                <div style={{ color: S.muted, fontSize: "0.68rem", marginBottom: 4 }}>∞ CANTRIPS</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                  {cantrips.map((s) => <span key={s} style={{ padding: "2px 8px", background: "rgba(52,152,219,0.08)", border: "1px solid #1a5276", borderRadius: 20, color: "#5d8aa8", fontSize: "0.7rem" }}>{s}</span>)}
+                </div>
+              </div>
+            )}
+            {knownSpells.length > 0 && (
+              <div style={{ marginBottom: 8 }}>
+                <div style={{ color: S.muted, fontSize: "0.68rem", marginBottom: 4 }}>📜 {spellInfo?.type === "prepared" ? "PREPARED SPELLS" : "KNOWN SPELLS"}</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                  {knownSpells.map((s) => <span key={s} style={{ padding: "2px 8px", background: "rgba(218,165,32,0.06)", border: `1px solid ${S.dimGold}`, borderRadius: 20, color: S.darkGold, fontSize: "0.7rem" }}>{s}</span>)}
+                </div>
+              </div>
+            )}
+            {classFeatures.length > 0 && (
+              <div>
+                <div style={{ color: S.muted, fontSize: "0.68rem", marginBottom: 6 }}>⚔️ CLASS FEATURES</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {classFeatures.map((f, fi) => (
+                    <div key={fi} style={{ background: "#0a0800", border: `1px solid ${S.dimGold}`, borderRadius: 4, padding: "6px 10px" }}>
+                      <div style={{ color: S.gold, fontSize: "0.68rem", marginBottom: 4 }}>{f.name} <span style={{ color: S.muted, opacity: 0.7 }}>({f.nameTH})</span></div>
+                      {f.max > 0 && f.max <= 20 ? (
+                        <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
+                          {Array.from({ length: f.max }, (_, i) => (
+                            <div key={i} onClick={() => setClassFeatures((prev) => prev.map((x, xi) => xi === fi ? { ...x, used: i < x.used ? i : Math.min(i + 1, x.max) } : x))} style={{ width: 14, height: 14, borderRadius: "50%", background: i < f.used ? "#1a0a00" : S.darkGold, border: `1px solid ${S.dimGold}`, cursor: "pointer" }} />
+                          ))}
+                        </div>
+                      ) : (
+                        <div style={{ color: S.muted, fontSize: "0.68rem" }}>{f.isPool ? `${f.max - f.used}/${f.max} HP` : `${f.max - f.used}/${f.max}`}</div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {!spellSlots && classFeatures.length === 0 && (
+              <div style={{ color: S.dim, fontSize: "0.78rem", fontStyle: "italic" }}>Class ของคุณไม่มี Spell หรือ Special Resource สำหรับติดตาม</div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---- APP ----
 export default function App() {
   const [auth, setAuth] = useState<{
     token: string;
@@ -8433,9 +9095,33 @@ export default function App() {
       return null;
     }
   });
-  const [screen, setScreen] = useState<"start" | "create" | "game">("start");
+  const [screen, setScreen] = useState<"start" | "create" | "game" | "mp_create_setup" | "mp_join_setup" | "mp_lobby" | "mp_game">("start");
   const [char, setChar] = useState<any>(null);
   const [resumeData, setResumeData] = useState<any>(null);
+  const [mpMode, setMpMode] = useState<"create" | "join">("create");
+  const [mpJoinCode, setMpJoinCode] = useState("");
+
+  // Multiplayer — socket lives here so it survives lobby→game transition
+  const mpSocketRef = useRef<Socket | null>(null);
+  const [mpRoomCode, setMpRoomCode] = useState("");
+  const [mpPlayers, setMpPlayers] = useState<MpPlayer[]>([]);
+  const [mpMyUserId, setMpMyUserId] = useState(0);
+
+  function createMpSocket() {
+    if (mpSocketRef.current) { mpSocketRef.current.disconnect(); }
+    const s = io(API_URL, { transports: ["websocket", "polling"] });
+    mpSocketRef.current = s;
+    return s;
+  }
+  function destroyMpSocket() {
+    mpSocketRef.current?.disconnect();
+    mpSocketRef.current = null;
+  }
+
+  // Parse userId from JWT token
+  function getMyUserId(token: string): number {
+    try { return JSON.parse(atob(token.split(".")[1])).userId; } catch { return 0; }
+  }
 
   function handleLogout() {
     localStorage.removeItem("dnd-auth");
@@ -8466,6 +9152,63 @@ export default function App() {
       />
     );
 
+  if (screen === "mp_create_setup")
+    return (
+      <CharacterCreator
+        onDone={(c) => {
+          setChar(c);
+          setMpMode("create");
+          setMpMyUserId(getMyUserId(auth.token));
+          createMpSocket();
+          setScreen("mp_lobby");
+        }}
+      />
+    );
+
+  if (screen === "mp_join_setup")
+    return (
+      <CharacterCreator
+        hideWorld
+        onDone={(c) => {
+          setChar(c);
+          setMpMode("join");
+          setMpMyUserId(getMyUserId(auth.token));
+          createMpSocket();
+          setScreen("mp_lobby");
+        }}
+      />
+    );
+
+  if (screen === "mp_lobby" && char && mpSocketRef.current)
+    return (
+      <MultiplayerLobbyScreen
+        socket={mpSocketRef.current}
+        char={char}
+        token={auth.token}
+        mode={mpMode}
+        joinCode={mpJoinCode}
+        myUserId={mpMyUserId}
+        onGameStart={(roomCode, players) => {
+          setMpRoomCode(roomCode);
+          setMpPlayers(players);
+          setScreen("mp_game");
+        }}
+        onBack={() => { destroyMpSocket(); setScreen("start"); }}
+      />
+    );
+
+  if (screen === "mp_game" && mpSocketRef.current)
+    return (
+      <MultiplayerGameScreen
+        socket={mpSocketRef.current}
+        roomCode={mpRoomCode}
+        initialPlayers={mpPlayers}
+        myUserId={mpMyUserId}
+        char={char}
+        onLeave={() => { destroyMpSocket(); setScreen("start"); }}
+      />
+    );
+
   if (screen === "game" && char)
     return (
       <GameScreen
@@ -8485,6 +9228,11 @@ export default function App() {
         setChar(charData);
         setResumeData(gameData);
         setScreen("game");
+      }}
+      onMultiplayerCreate={() => setScreen("mp_create_setup")}
+      onMultiplayerJoin={(code) => {
+        setMpJoinCode(code);
+        setScreen("mp_join_setup");
       }}
     />
   );
