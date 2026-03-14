@@ -5669,7 +5669,7 @@ function GameScreen({
           dc: r.dc,
         };
       })
-      .filter((r): r is DiceRoll => r !== null);
+      .filter((r): r is NonNullable<typeof r> => r !== null);
   }
 
   function buildStatusSnapshot(currentHp: number): string {
