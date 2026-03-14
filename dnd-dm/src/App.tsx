@@ -9109,7 +9109,7 @@ export default function App() {
 
   function createMpSocket() {
     if (mpSocketRef.current) { mpSocketRef.current.disconnect(); }
-    const s = io(API_URL, { transports: ["websocket", "polling"] });
+    const s = io(API_URL, { transports: ["polling", "websocket"] });
     mpSocketRef.current = s;
     return s;
   }
