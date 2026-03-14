@@ -4642,6 +4642,7 @@ type DiceRoll = {
   notation: string;
   rolls: number[];
   total: number;
+  dc?: number;
 };
 type Message = {
   role: "dm" | "player";
@@ -5527,6 +5528,13 @@ function GameScreen({
   const [showSaveLoad, setShowSaveLoad] = useState(false);
   const [showDevPanel, setShowDevPanel] = useState(false);
   const [showMap, setShowMap] = useState(false);
+  const [showSidebar, setShowSidebar] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handler);
+    return () => window.removeEventListener("resize", handler);
+  }, []);
   const [worldMap, setWorldMap] = useState<WorldMap>(
     R?.worldMap ?? { current: "", nodes: [], edges: [] },
   );
@@ -5648,7 +5656,7 @@ function GameScreen({
     setShowSaveLoad(false);
   }
 
-  function performRolls(rollList: { label: string; notation: string }[]) {
+  function performRolls(rollList: { label: string; notation: string; dc?: number }[]) {
     return rollList
       .map((r) => {
         const result = rollDice(r.notation);
@@ -5658,6 +5666,7 @@ function GameScreen({
           notation: r.notation,
           rolls: result.rolls,
           total: result.total,
+          dc: r.dc,
         };
       })
       .filter((r): r is DiceRoll => r !== null);
@@ -5818,7 +5827,7 @@ ${buildResourceSummary()}
 กฎ DM (บังคับทุกข้อ):
 - ตอบเป็นภาษาไทยเสมอ ปรับ NPC/สถานที่ให้เข้ากับโลก
 - อ้างอิงประวัติ อาชีพ รูปลักษณ์ของตัวละครเมื่อเหมาะสม
-- ห้ามเติมแต่งหรือเปลี่ยนคำพูดของผู้เล่น — บรรยายผลจากสิ่งที่ผู้เล่นพูดจริงๆ เท่านั้น
+- ห้ามเติมแต่ง ขยาย หรือเปลี่ยนคำพูดของผู้เล่นเด็ดขาด - ห้ามใส่อารมณ์/น้ำเสียงเพิ่มเองที่ผู้เล่นไม่ได้บอก — DM บรรยายเฉพาะผลที่เกิดขึ้นจากการกระทำนั้น ไม่ใช่ rewrite คำพูดผู้เล่น
 - เกมนี้อิงความสมจริง 100% เหมือนใช้ชีวิตจริงในโลกแฟนตาซี — NPC มีเหตุผล สิ่งแวดล้อมมีผลกระทบ ทุกการกระทำมีผลตามจริง
 
 กฎ NPC — บุคลิกและแรงจูงใจ (สำคัญมาก):
@@ -5836,7 +5845,8 @@ ${buildResourceSummary()}
 - ห้าม hard reject ว่า "ไม่มีในประวัติ" หรือ "ไม่ได้ระบุ" — DM ต้องรับและสร้างเรื่องต่อเสมอ
 
 กฎ ROLL:
-- เมื่อผู้เล่นกระทำที่ต้องการ skill check / attack / saving throw ให้เขียน [ROLL: label|notation] แล้วหยุด — ระบบจะส่งผลกลับมา แล้วค่อยบรรยายผล อย่าบรรยายก่อนรู้ผล ห้ามโรลซ้ำในข้อความเดียวกัน
+- เมื่อผู้เล่นกระทำที่ต้องการ skill check / attack / saving throw ให้เขียน [ROLL: label|notation|DC] แล้วหยุด — ระบบจะส่งผลกลับมา แล้วค่อยบรรยายผล อย่าบรรยายก่อนรู้ผล ห้ามโรลซ้ำในข้อความเดียวกัน
+  ตัวอย่าง: [ROLL: Perception|1d20+3|12] หรือ [ROLL: Attack|1d20+5|14] หรือถ้าไม่มี DC (เช่น damage) ให้ใส่ 0: [ROLL: Damage|2d6+3|0]
 - เมื่อระบบส่งผลลูกเต๋ากลับมาในรูป <<DICE>> ... <</DICE>> ให้ใช้ตัวเลขนั้นบรรยายผลทันที ห้ามพิมพ์ <<DICE>> หรือ <</DICE>> หรือตัวเลขลูกเต๋าซ้ำในคำตอบ — เริ่มบรรยายเรื่องราวได้เลย หากผู้เล่นรับดาเมจต้องใส่ [HP: -N] ด้วยเสมอ
 
 กฎ SPELL (อ่านให้ครบทุกข้อ):
@@ -5943,10 +5953,11 @@ ${buildCampaign(char.world, char.name, cls?.name || "", race?.name || "")}${stor
     let match: RegExpExecArray | null;
 
     // ROLL
-    const rollPattern = /\[ROLL:\s*([^|]+)\|([^\]]+)\]/g;
-    const rollRequests: { label: string; notation: string }[] = [];
+    const rollPattern = /\[ROLL:\s*([^|]+)\|([^|^\]]+)(?:\|(\d+))?\]/g;
+    const rollRequests: { label: string; notation: string; dc?: number }[] = [];
     while ((match = rollPattern.exec(rawText)) !== null) {
-      rollRequests.push({ label: match[1].trim(), notation: match[2].trim() });
+      const dcVal = match[3] ? parseInt(match[3]) : undefined;
+      rollRequests.push({ label: match[1].trim(), notation: match[2].trim(), dc: dcVal && dcVal > 0 ? dcVal : undefined });
     }
 
     // HP
@@ -6389,13 +6400,15 @@ ${buildCampaign(char.world, char.name, cls?.name || "", race?.name || "")}${stor
       );
       // Extract roll requests only — ไม่ parse side effects จาก call แรก
       // เพราะถ้ามี rolls จะมี call ที่สองและ parseResponse ที่สองเป็นตัวจริง
-      const rollOnlyMatches: { label: string; notation: string }[] = [];
-      const rollPatternCheck = /\[ROLL:\s*([^|]+)\|([^\]]+)\]/g;
+      const rollOnlyMatches: { label: string; notation: string; dc?: number }[] = [];
+      const rollPatternCheck = /\[ROLL:\s*([^|]+)\|([^|^\]]+)(?:\|(\d+))?\]/g;
       let rollMatch: RegExpExecArray | null;
       while ((rollMatch = rollPatternCheck.exec(raw)) !== null) {
+        const dcVal = rollMatch[3] ? parseInt(rollMatch[3]) : undefined;
         rollOnlyMatches.push({
           label: rollMatch[1].trim(),
           notation: rollMatch[2].trim(),
+          dc: dcVal && dcVal > 0 ? dcVal : undefined,
         });
       }
       const rolls = performRolls(rollOnlyMatches);
@@ -6404,7 +6417,7 @@ ${buildCampaign(char.world, char.name, cls?.name || "", race?.name || "")}${stor
         // Two-step: ส่งผลโรลกลับให้ DM แล้วรอ response ที่บรรยายผลจริง
         // call แรกเป็นแค่ขอให้โรล — ไม่ parse side effects เพราะยังไม่ได้บรรยายผล
         const rollOnlyContent = rollOnlyMatches
-          .map((r) => `[ROLL: ${r.label}|${r.notation}]`)
+          .map((r) => `[ROLL: ${r.label}|${r.notation}${r.dc ? `|${r.dc}` : ""}]`)
           .join("\n");
         convRef.current.push({ role: "assistant", content: rollOnlyContent });
         const rollResultMsg = rolls
@@ -6519,12 +6532,19 @@ ${buildCampaign(char.world, char.name, cls?.name || "", race?.name || "")}${stor
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <span style={{ fontSize: "1.2rem" }}>{cls?.icon}</span>
           <div>
-            <div style={{ color: S.gold, fontSize: "0.95rem" }}>
+            <div
+              style={{
+                color: S.gold,
+                fontSize: isMobile ? "0.85rem" : "0.95rem",
+              }}
+            >
               {char.name}
             </div>
-            <div style={{ color: S.muted, fontSize: "0.7rem" }}>
-              {race?.name} {cls?.name} · {char.world}
-            </div>
+            {!isMobile && (
+              <div style={{ color: S.muted, fontSize: "0.7rem" }}>
+                {race?.name} {cls?.name} · {char.world}
+              </div>
+            )}
           </div>
         </div>
         <div
@@ -6581,10 +6601,27 @@ ${buildCampaign(char.world, char.name, cls?.name || "", race?.name || "")}${stor
               />
             </div>
           </div>
-          {bg?.name && (
+          {!isMobile && bg?.name && (
             <span style={{ color: S.dimGold, fontSize: "0.72rem" }}>
               {bg.name}
             </span>
+          )}
+          {isMobile && (
+            <button
+              onClick={() => setShowSidebar(true)}
+              style={{
+                padding: "4px 10px",
+                background: "none",
+                border: `1px solid ${S.dimGold}`,
+                borderRadius: 3,
+                color: S.darkGold,
+                fontFamily: S.font,
+                fontSize: "0.72rem",
+                cursor: "pointer",
+              }}
+            >
+              📊
+            </button>
           )}
           <button
             onClick={() => setShowMap(true)}
@@ -6630,7 +6667,7 @@ ${buildCampaign(char.world, char.name, cls?.name || "", race?.name || "")}${stor
               cursor: "pointer",
             }}
           >
-            💾 Save / Load
+            {isMobile ? "💾" : "💾 Save / Load"}
           </button>
           {isDev && (
             <button
@@ -6663,7 +6700,7 @@ ${buildCampaign(char.world, char.name, cls?.name || "", race?.name || "")}${stor
             }}
             title={`ออกจากระบบ (${username})`}
           >
-            🚪 {username}
+            {isMobile ? "🚪" : `🚪 ${username}`}
           </button>
         </div>
       </div>
@@ -7063,29 +7100,42 @@ ${buildCampaign(char.world, char.name, cls?.name || "", race?.name || "")}${stor
                         paddingLeft: 4,
                       }}
                     >
-                      {msg.rolls.map((r, j) => (
+                      {msg.rolls.map((r, j) => {
+                        const passed = r.dc ? r.total >= r.dc : null;
+                        return (
                         <div
                           key={j}
                           style={{
                             padding: "3px 10px",
                             background: "#0a0500",
-                            border: `1px solid ${S.border}`,
+                            border: `1px solid ${passed === true ? "#27ae60" : passed === false ? "#c0392b" : S.border}`,
                             borderRadius: 3,
                             fontSize: "0.75rem",
                           }}
                         >
                           <span style={{ color: S.dimGold }}>
-                            🎲 {r.label} ({r.notation}):{" "}
+                            🎲 {r.label}
                           </span>
+                          {r.dc && (
+                            <span style={{ color: "#aaa", marginLeft: 4 }}>
+                              DC:{r.dc}
+                            </span>
+                          )}
+                          <span style={{ color: S.dimGold }}>{" "}({r.notation}): </span>
                           <span style={{ color: S.muted }}>
                             [{r.rolls.join(", ")}]
                           </span>
                           <span style={{ color: S.gold, fontWeight: "bold" }}>
-                            {" "}
-                            = {r.total}
+                            {" "}= {r.total}
                           </span>
+                          {passed !== null && (
+                            <span style={{ color: passed ? "#2ecc71" : "#e74c3c", marginLeft: 6, fontWeight: "bold" }}>
+                              {passed ? "✓" : "✗"}
+                            </span>
+                          )}
                         </div>
-                      ))}
+                        );
+                      })}
                       {msg.hpChange !== undefined && msg.hpChange !== 0 && (
                         <div
                           style={{
@@ -7143,36 +7193,61 @@ ${buildCampaign(char.world, char.name, cls?.name || "", race?.name || "")}${stor
           {/* Input */}
           <div
             style={{
-              padding: "12px 16px",
+              padding: isMobile ? "8px 10px" : "12px 16px",
               borderTop: `1px solid ${S.border}`,
               background: "#0d0700",
               display: "flex",
+              flexDirection: isMobile ? "column" : "row",
               gap: 8,
             }}
           >
-            <input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-              placeholder="คุณจะทำอะไร? (เช่น: ผมโจมตีมัน, ผมมองรอบๆ, ผมร่ายมนตร์ไฟ...)"
-              style={{
-                flex: 1,
-                padding: "10px 14px",
-                background: S.bg,
-                border: `1px solid ${S.border}`,
-                borderRadius: 3,
-                color: S.text,
-                fontFamily: S.font,
-                fontSize: "0.88rem",
-                outline: "none",
-              }}
-              onFocus={(e) =>
-                ((e.target as HTMLInputElement).style.borderColor = S.darkGold)
-              }
-              onBlur={(e) =>
-                ((e.target as HTMLInputElement).style.borderColor = S.border)
-              }
-            />
+            {isMobile ? (
+              <textarea
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="คุณจะทำอะไร?"
+                rows={3}
+                style={{
+                  flex: 1,
+                  padding: "10px 12px",
+                  background: S.bg,
+                  border: `1px solid ${S.border}`,
+                  borderRadius: 3,
+                  color: S.text,
+                  fontFamily: S.font,
+                  fontSize: "0.88rem",
+                  outline: "none",
+                  resize: "none",
+                }}
+                onFocus={(e) => (e.target.style.borderColor = S.darkGold)}
+                onBlur={(e) => (e.target.style.borderColor = S.border)}
+              />
+            ) : (
+              <input
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+                placeholder="คุณจะทำอะไร? (เช่น: ผมโจมตีมัน, ผมมองรอบๆ, ผมร่ายมนตร์ไฟ...)"
+                style={{
+                  flex: 1,
+                  padding: "10px 14px",
+                  background: S.bg,
+                  border: `1px solid ${S.border}`,
+                  borderRadius: 3,
+                  color: S.text,
+                  fontFamily: S.font,
+                  fontSize: "0.88rem",
+                  outline: "none",
+                }}
+                onFocus={(e) =>
+                  ((e.target as HTMLInputElement).style.borderColor =
+                    S.darkGold)
+                }
+                onBlur={(e) =>
+                  ((e.target as HTMLInputElement).style.borderColor = S.border)
+                }
+              />
+            )}
             <GoldBtn onClick={sendMessage} disabled={loading || !input.trim()}>
               กระทำ
             </GoldBtn>
@@ -7180,6 +7255,17 @@ ${buildCampaign(char.world, char.name, cls?.name || "", race?.name || "")}${stor
         </div>
 
         {/* RIGHT SIDEBAR */}
+        {isMobile && showSidebar && (
+          <div
+            onClick={() => setShowSidebar(false)}
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(0,0,0,0.6)",
+              zIndex: 200,
+            }}
+          />
+        )}
         <div
           style={{
             width: 300,
@@ -7189,8 +7275,55 @@ ${buildCampaign(char.world, char.name, cls?.name || "", race?.name || "")}${stor
             flexDirection: "column",
             overflowY: "auto",
             flexShrink: 0,
+            ...(isMobile
+              ? {
+                  position: "fixed",
+                  top: 0,
+                  right: 0,
+                  height: "100dvh",
+                  zIndex: 201,
+                  transform: showSidebar ? "translateX(0)" : "translateX(100%)",
+                  transition: "transform 0.25s ease",
+                }
+              : {}),
           }}
         >
+          {/* Mobile close bar */}
+          {isMobile && (
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                padding: "10px 14px",
+                borderBottom: `1px solid ${S.border}`,
+                background: "#110f08",
+              }}
+            >
+              <span
+                style={{
+                  color: S.darkGold,
+                  fontSize: "0.72rem",
+                  letterSpacing: "0.1em",
+                }}
+              >
+                📊 สถานะ
+              </span>
+              <button
+                onClick={() => setShowSidebar(false)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "#888",
+                  fontSize: "1.1rem",
+                  cursor: "pointer",
+                }}
+              >
+                ✕
+              </button>
+            </div>
+          )}
+
           {/* Ability Scores */}
           <div
             style={{
