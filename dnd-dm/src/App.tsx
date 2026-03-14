@@ -4055,6 +4055,57 @@ function MapModal({ map, onClose }: { map: WorldMap; onClose: () => void }) {
     setZoom((z) => Math.min(3, Math.max(0.3, z - e.deltaY * 0.001)));
   }
 
+  // Touch support
+  const touchRef = useRef<{
+    startX: number;
+    startY: number;
+    panX: number;
+    panY: number;
+    dist?: number;
+    zoom?: number;
+  } | null>(null);
+
+  function onTouchStart(e: React.TouchEvent) {
+    if (e.touches.length === 1) {
+      touchRef.current = {
+        startX: e.touches[0].clientX,
+        startY: e.touches[0].clientY,
+        panX: pan.x,
+        panY: pan.y,
+      };
+    } else if (e.touches.length === 2) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      touchRef.current = {
+        startX: 0,
+        startY: 0,
+        panX: pan.x,
+        panY: pan.y,
+        dist: Math.hypot(dx, dy),
+        zoom,
+      };
+    }
+  }
+  function onTouchMove(e: React.TouchEvent) {
+    e.preventDefault();
+    if (!touchRef.current) return;
+    if (e.touches.length === 1 && touchRef.current.dist === undefined) {
+      setPan({
+        x: touchRef.current.panX + (e.touches[0].clientX - touchRef.current.startX),
+        y: touchRef.current.panY + (e.touches[0].clientY - touchRef.current.startY),
+      });
+    } else if (e.touches.length === 2 && touchRef.current.dist !== undefined) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const newDist = Math.hypot(dx, dy);
+      const scale = newDist / touchRef.current.dist;
+      setZoom(Math.min(3, Math.max(0.3, (touchRef.current.zoom ?? 1) * scale)));
+    }
+  }
+  function onTouchEnd() {
+    touchRef.current = null;
+  }
+
   const currentNode = map.nodes.find((n) => n.id === map.current);
 
   return (
@@ -4189,6 +4240,9 @@ function MapModal({ map, onClose }: { map: WorldMap; onClose: () => void }) {
           onMouseUp={onMouseUp}
           onMouseLeave={onMouseUp}
           onWheel={onWheel}
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
         >
           {map.nodes.length === 0 ? (
             <div
