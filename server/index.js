@@ -1,3 +1,4 @@
+require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const bcrypt = require("bcryptjs");
@@ -147,6 +148,53 @@ app.delete("/api/saves/:id", authMiddleware, async (req, res) => {
 
   if (error) return res.status(500).json({ error: error.message });
   res.json({ ok: true });
+});
+
+// ---- GEMINI PROXY (protected) ----
+const GEMINI_MODEL = "gemini-2.5-flash";
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+
+app.post("/api/gemini", authMiddleware, async (req, res) => {
+  const { systemPrompt, history } = req.body || {};
+  if (!systemPrompt || !history)
+    return res.status(400).json({ error: "systemPrompt and history required" });
+
+  const apiKey = process.env.GEMINI_KEY;
+  if (!apiKey) return res.status(500).json({ error: "GEMINI_KEY not configured" });
+
+  const geminiRes = await fetch(`${GEMINI_URL}?key=${apiKey}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      systemInstruction: { parts: [{ text: systemPrompt }] },
+      contents: history,
+      generationConfig: {
+        maxOutputTokens: 1200,
+        thinkingConfig: { thinkingBudget: 0 },
+      },
+      safetySettings: [
+        { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_CIVIC_INTEGRITY", threshold: "BLOCK_NONE" },
+      ],
+    }),
+  });
+
+  if (!geminiRes.ok) {
+    const err = await geminiRes.text();
+    return res.status(geminiRes.status).json({ error: err });
+  }
+
+  const data = await geminiRes.json();
+  const parts = data.candidates?.[0]?.content?.parts ?? [];
+  const text = parts
+    .filter((p) => !p.thought && p.text)
+    .map((p) => p.text)
+    .join("");
+
+  res.json({ text });
 });
 
 app.listen(PORT, () => {

@@ -512,13 +512,8 @@ const S = {
 };
 
 // ============================================================
-// GEMINI API
+// GEMINI API (proxied through backend)
 // ============================================================
-// ชื่อ env var ของคุณคือ GEMINI_KEY — Vite ต้องใช้ prefix VITE_
-// ใน .env ไฟล์: VITE_GEMINI_KEY=your_key_here
-const GEMINI_MODEL = "gemini-2.5-flash";
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
-
 // Gemini conversation message format
 type GeminiMessage = {
   role: "user" | "model";
@@ -526,7 +521,6 @@ type GeminiMessage = {
 };
 
 // Convert Anthropic-style {role, content} → Gemini {role, parts}
-// "assistant" → "model", "user" → "user"
 function toGeminiMessages(
   msgs: { role: string; content: string }[],
 ): GeminiMessage[] {
@@ -534,51 +528,6 @@ function toGeminiMessages(
     role: m.role === "assistant" ? "model" : "user",
     parts: [{ text: m.content }],
   }));
-}
-
-async function callGemini(
-  systemPrompt: string,
-  history: GeminiMessage[],
-): Promise<string> {
-  const apiKey = import.meta.env.VITE_GEMINI_KEY;
-  const res = await fetch(`${GEMINI_URL}?key=${apiKey}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      systemInstruction: { parts: [{ text: systemPrompt }] },
-      contents: history,
-      generationConfig: {
-        maxOutputTokens: 1200,
-        thinkingConfig: { thinkingBudget: 0 },
-      },
-      safetySettings: [
-        { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-        { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-        {
-          category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-          threshold: "BLOCK_NONE",
-        },
-        {
-          category: "HARM_CATEGORY_DANGEROUS_CONTENT",
-          threshold: "BLOCK_NONE",
-        },
-        { category: "HARM_CATEGORY_CIVIC_INTEGRITY", threshold: "BLOCK_NONE" },
-      ],
-    }),
-  });
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Gemini error ${res.status}: ${err}`);
-  }
-  const data = await res.json();
-  const parts: { text?: string; thought?: boolean }[] =
-    data.candidates?.[0]?.content?.parts ?? [];
-  return (
-    parts
-      .filter((p) => !p.thought && p.text)
-      .map((p) => p.text)
-      .join("") ?? ""
-  );
 }
 // ============================================================
 
@@ -4091,8 +4040,12 @@ function MapModal({ map, onClose }: { map: WorldMap; onClose: () => void }) {
     if (!touchRef.current) return;
     if (e.touches.length === 1 && touchRef.current.dist === undefined) {
       setPan({
-        x: touchRef.current.panX + (e.touches[0].clientX - touchRef.current.startX),
-        y: touchRef.current.panY + (e.touches[0].clientY - touchRef.current.startY),
+        x:
+          touchRef.current.panX +
+          (e.touches[0].clientX - touchRef.current.startX),
+        y:
+          touchRef.current.panY +
+          (e.touches[0].clientY - touchRef.current.startY),
       });
     } else if (e.touches.length === 2 && touchRef.current.dist !== undefined) {
       const dx = e.touches[0].clientX - e.touches[1].clientX;
@@ -5710,7 +5663,29 @@ function GameScreen({
     setShowSaveLoad(false);
   }
 
-  function performRolls(rollList: { label: string; notation: string; dc?: number }[]) {
+  async function callGemini(
+    systemPrompt: string,
+    history: GeminiMessage[],
+  ): Promise<string> {
+    const res = await fetch(`${API_URL}/api/gemini`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ systemPrompt, history }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: res.statusText }));
+      throw new Error(`Gemini error ${res.status}: ${err.error}`);
+    }
+    const data = await res.json();
+    return data.text ?? "";
+  }
+
+  function performRolls(
+    rollList: { label: string; notation: string; dc?: number }[],
+  ) {
     return rollList
       .map((r) => {
         const result = rollDice(r.notation);
@@ -6011,7 +5986,11 @@ ${buildCampaign(char.world, char.name, cls?.name || "", race?.name || "")}${stor
     const rollRequests: { label: string; notation: string; dc?: number }[] = [];
     while ((match = rollPattern.exec(rawText)) !== null) {
       const dcVal = match[3] ? parseInt(match[3]) : undefined;
-      rollRequests.push({ label: match[1].trim(), notation: match[2].trim(), dc: dcVal && dcVal > 0 ? dcVal : undefined });
+      rollRequests.push({
+        label: match[1].trim(),
+        notation: match[2].trim(),
+        dc: dcVal && dcVal > 0 ? dcVal : undefined,
+      });
     }
 
     // HP
@@ -6454,7 +6433,11 @@ ${buildCampaign(char.world, char.name, cls?.name || "", race?.name || "")}${stor
       );
       // Extract roll requests only — ไม่ parse side effects จาก call แรก
       // เพราะถ้ามี rolls จะมี call ที่สองและ parseResponse ที่สองเป็นตัวจริง
-      const rollOnlyMatches: { label: string; notation: string; dc?: number }[] = [];
+      const rollOnlyMatches: {
+        label: string;
+        notation: string;
+        dc?: number;
+      }[] = [];
       const rollPatternCheck = /\[ROLL:\s*([^|]+)\|([^|^\]]+)(?:\|(\d+))?\]/g;
       let rollMatch: RegExpExecArray | null;
       while ((rollMatch = rollPatternCheck.exec(raw)) !== null) {
@@ -6471,7 +6454,9 @@ ${buildCampaign(char.world, char.name, cls?.name || "", race?.name || "")}${stor
         // Two-step: ส่งผลโรลกลับให้ DM แล้วรอ response ที่บรรยายผลจริง
         // call แรกเป็นแค่ขอให้โรล — ไม่ parse side effects เพราะยังไม่ได้บรรยายผล
         const rollOnlyContent = rollOnlyMatches
-          .map((r) => `[ROLL: ${r.label}|${r.notation}${r.dc ? `|${r.dc}` : ""}]`)
+          .map(
+            (r) => `[ROLL: ${r.label}|${r.notation}${r.dc ? `|${r.dc}` : ""}]`,
+          )
           .join("\n");
         convRef.current.push({ role: "assistant", content: rollOnlyContent });
         const rollResultMsg = rolls
@@ -7157,37 +7142,47 @@ ${buildCampaign(char.world, char.name, cls?.name || "", race?.name || "")}${stor
                       {msg.rolls.map((r, j) => {
                         const passed = r.dc ? r.total >= r.dc : null;
                         return (
-                        <div
-                          key={j}
-                          style={{
-                            padding: "3px 10px",
-                            background: "#0a0500",
-                            border: `1px solid ${passed === true ? "#27ae60" : passed === false ? "#c0392b" : S.border}`,
-                            borderRadius: 3,
-                            fontSize: "0.75rem",
-                          }}
-                        >
-                          <span style={{ color: S.dimGold }}>
-                            🎲 {r.label}
-                          </span>
-                          {r.dc && (
-                            <span style={{ color: "#aaa", marginLeft: 4 }}>
-                              DC:{r.dc}
+                          <div
+                            key={j}
+                            style={{
+                              padding: "3px 10px",
+                              background: "#0a0500",
+                              border: `1px solid ${passed === true ? "#27ae60" : passed === false ? "#c0392b" : S.border}`,
+                              borderRadius: 3,
+                              fontSize: "0.75rem",
+                            }}
+                          >
+                            <span style={{ color: S.dimGold }}>
+                              🎲 {r.label}
                             </span>
-                          )}
-                          <span style={{ color: S.dimGold }}>{" "}({r.notation}): </span>
-                          <span style={{ color: S.muted }}>
-                            [{r.rolls.join(", ")}]
-                          </span>
-                          <span style={{ color: S.gold, fontWeight: "bold" }}>
-                            {" "}= {r.total}
-                          </span>
-                          {passed !== null && (
-                            <span style={{ color: passed ? "#2ecc71" : "#e74c3c", marginLeft: 6, fontWeight: "bold" }}>
-                              {passed ? "✓" : "✗"}
+                            {r.dc && (
+                              <span style={{ color: "#aaa", marginLeft: 4 }}>
+                                DC:{r.dc}
+                              </span>
+                            )}
+                            <span style={{ color: S.dimGold }}>
+                              {" "}
+                              ({r.notation}):{" "}
                             </span>
-                          )}
-                        </div>
+                            <span style={{ color: S.muted }}>
+                              [{r.rolls.join(", ")}]
+                            </span>
+                            <span style={{ color: S.gold, fontWeight: "bold" }}>
+                              {" "}
+                              = {r.total}
+                            </span>
+                            {passed !== null && (
+                              <span
+                                style={{
+                                  color: passed ? "#2ecc71" : "#e74c3c",
+                                  marginLeft: 6,
+                                  fontWeight: "bold",
+                                }}
+                              >
+                                {passed ? "✓" : "✗"}
+                              </span>
+                            )}
+                          </div>
                         );
                       })}
                       {msg.hpChange !== undefined && msg.hpChange !== 0 && (
