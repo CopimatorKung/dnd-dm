@@ -179,6 +179,64 @@ function rollDice(notation) {
   return { rolls, total: rolls.reduce((a, b) => a + b, 0) + mod, notation };
 }
 
+function emptyWorldMemory() {
+  return { npcs: [], locations: [], plot: [], partyState: "" };
+}
+function mergeWorldMemory(existing, newNpcs, newLocs, newPlot, newState) {
+  const npcs = [...existing.npcs];
+  for (const n of newNpcs) {
+    const idx = npcs.findIndex((x) => x.name.toLowerCase() === n.name.toLowerCase());
+    if (idx >= 0) npcs[idx] = n; else npcs.push(n);
+  }
+  const locations = [...existing.locations];
+  for (const l of newLocs) {
+    const idx = locations.findIndex((x) => x.name.toLowerCase() === l.name.toLowerCase());
+    if (idx >= 0) locations[idx] = l; else locations.push(l);
+  }
+  const plot = [...existing.plot];
+  for (const p of newPlot) {
+    if (!plot.includes(p)) plot.push(p);
+  }
+  return { npcs, locations, plot, partyState: newState || existing.partyState };
+}
+function worldMemoryToText(mem) {
+  const parts = [];
+  if (mem.npcs.length > 0)
+    parts.push(`NPCs: ${mem.npcs.map((n) => `${n.name} (${n.relation}, ${n.status})`).join(" | ")}`);
+  if (mem.locations.length > 0)
+    parts.push(`Locations: ${mem.locations.map((l) => `${l.name} (${l.notes})`).join(" | ")}`);
+  if (mem.plot.length > 0)
+    parts.push(`Plot: ${mem.plot.join(" | ")}`);
+  if (mem.partyState)
+    parts.push(`Current: ${mem.partyState}`);
+  if (parts.length === 0) return "";
+  return `\n\n== WORLD MEMORY (อ่านก่อนตอบทุกครั้ง) ==\n${parts.join("\n")}`;
+}
+function parseWorldMemoryTags(text, existing) {
+  const npcRe = /\[MEM_NPC:\s*([^|\]]+)\|([^|\]]+)\|([^\]]+)\]/g;
+  const newNpcs = [];
+  let m;
+  while ((m = npcRe.exec(text)) !== null)
+    newNpcs.push({ name: m[1].trim(), relation: m[2].trim(), status: m[3].trim() });
+
+  const locRe = /\[MEM_LOC:\s*([^|\]]+)\|([^\]]+)\]/g;
+  const newLocs = [];
+  while ((m = locRe.exec(text)) !== null)
+    newLocs.push({ name: m[1].trim(), notes: m[2].trim() });
+
+  const plotRe = /\[MEM_PLOT:\s*([^\]]+)\]/g;
+  const newPlot = [];
+  while ((m = plotRe.exec(text)) !== null)
+    newPlot.push(m[1].trim());
+
+  const stateM = /\[MEM_STATE:\s*([^\]]+)\]/.exec(text);
+  const newState = stateM ? stateM[1].trim() : "";
+
+  if (newNpcs.length || newLocs.length || newPlot.length || newState)
+    return mergeWorldMemory(existing, newNpcs, newLocs, newPlot, newState);
+  return existing;
+}
+
 function toHistory(conv) {
   const out = [];
   for (const m of conv) {
@@ -256,7 +314,14 @@ ${pList}
 กฎ LONG REST:
 - ถ้าผู้เล่นต้องการ Long Rest ให้บรรยายสั้นๆ และแจ้งว่าต้องการอาหาร ${room.players.length * 80} หน่วยรวม จากนั้นบอกให้ผู้เล่นทุกคนพิมพ์ "ยืนยัน" เพื่อยืนยัน แล้วลงท้าย response ด้วย [AWAIT_REST]
 - ถ้ากำลัง combat อยู่ให้ปฏิเสธ Long Rest ก่อน อย่าใช้ [AWAIT_REST]
-- Short Rest ไม่ต้องใช้ [AWAIT_REST]`;
+- Short Rest ไม่ต้องใช้ [AWAIT_REST]
+
+กฎ WORLD MEMORY (บังคับทุก turn):
+- NPC ที่เจอหรืออัพเดต: [MEM_NPC: ชื่อ|ความสัมพันธ์|สถานะปัจจุบัน]
+- สถานที่สำคัญ: [MEM_LOC: ชื่อ|รายละเอียด]
+- เหตุการณ์สำคัญ: [MEM_PLOT: สรุป 1 ประโยค]
+- สถานะปาร์ตี้: [MEM_STATE: ปาร์ตี้กำลังทำอะไร อยู่ที่ไหน]
+- ทุก tag จะถูกซ่อนจากผู้เล่น${worldMemoryToText(room.worldMemory)}`;
 }
 
 function parseHP(text, players) {
@@ -342,6 +407,7 @@ io.on("connection", (socket) => {
       gameState: "lobby",
       pendingActions: new Map(), // userId → { player, text }
       restPending: null,         // Map<uid, food> while waiting for confirmations | null
+      worldMemory: emptyWorldMemory(),
     });
     roomCode = code;
     socket.join(code);
@@ -537,6 +603,9 @@ io.on("connection", (socket) => {
         room.restPending = new Map(); // uid → food amount
         io.to(roomCode).emit("mp_rest_pending", { totalFood: room.players.length * 80 });
       }
+
+      // Update world memory
+      room.worldMemory = parseWorldMemoryTags(cleanedRaw, room.worldMemory);
 
       const hpChanges = parseHP(cleanedRaw, room.players);
       for (const [name, delta] of Object.entries(hpChanges)) {
